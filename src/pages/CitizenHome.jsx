@@ -52,11 +52,17 @@ export default function CitizenHome() {
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [pickingFromMap, setPickingFromMap] = useState(false);
+  const [trackTab, setTrackTab] = useState('code');
+  const [lookupPhone, setLookupPhone] = useState('');
+  const [lookupResults, setLookupResults] = useState(null); // null = chưa tìm
+  const [lookupLoading, setLookupLoading] = useState(false);
 
   const [form, setForm] = useState({
     citizen_name: '', citizen_phone: '', latitude: '', longitude: '',
     address: '', incident_type_id: '', urgency_level_id: '',
-    description: '', victim_count: '1', support_type: '', flood_severity: '2'
+    description: '', victim_count: '1', support_type: '', flood_severity: '2',
+    geo_province_name: '', geo_district_name: ''
   });
   const [formImages, setFormImages] = useState([]);
   const [pickerLocation, setPickerLocation] = useState(null);
@@ -95,7 +101,7 @@ export default function CitizenHome() {
       const [types, levels, provs, alerts] = await Promise.all([
         regionAPI.getIncidentTypes(),
         regionAPI.getUrgencyLevels(),
-        regionAPI.getProvinces(), // FIX: Dùng DB provinces (có lat/lng và khớp với province_id)
+        regionAPI.getProvinces(),
         regionAPI.getWeatherAlerts()
       ]);
       setIncidentTypes(types.data);
@@ -177,9 +183,13 @@ export default function CitizenHome() {
   }
 
   function handleMapClick(latlng) {
-    if (showForm) {
+    if (showForm || pickingFromMap) {
       setForm(f => ({ ...f, latitude: latlng.lat.toFixed(6), longitude: latlng.lng.toFixed(6) }));
       setPickerLocation(latlng);
+      if (pickingFromMap) setPickingFromMap(false);
+      reverseGeocodeAddress(latlng.lat, latlng.lng).then(geo => {
+        if (geo) setForm(f => ({ ...f, geo_province_name: geo.province, geo_district_name: geo.district }));
+      });
     }
   }
 
@@ -212,15 +222,27 @@ export default function CitizenHome() {
     setSubmitting(false);
   }
 
+  async function lookupByPhone() {
+    if (!lookupPhone.trim()) return;
+    setLookupLoading(true);
+    try {
+      const { data } = await requestAPI.lookupByPhone(lookupPhone.trim());
+      setLookupResults(data);
+    } catch {
+      setLookupResults([]);
+    }
+    setLookupLoading(false);
+  }
+
   const activeRequests = requests.filter(r => !['completed', 'cancelled', 'rejected'].includes(r.status));
   const completedCount = requests.filter(r => r.status === 'completed').length;
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-flood-dark">
       {/* Top Bar */}
-      <header className="bg-gradient-to-r from-flood-dark via-flood to-flood-dark text-white px-4 py-2 flex items-center justify-between z-50 shadow-lg border-b border-white/10 shrink-0">
+      <header className="bg-gradient-to-r from-flood-dark via-flood to-flood-dark text-white px-4 py-2 flex items-center justify-between z-50 shadow-lg border-b border-white/10">
         <div className="flex items-center gap-3">
-          <button onClick={() => setShowSidebar(!showSidebar)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+          <button onClick={() => setShowSidebar(!showSidebar)} className="lg:hidden p-1.5 hover:bg-white/10 rounded">
             <Menu size={20} />
           </button>
           <Waves className="text-flood-accent" size={28} />
@@ -240,8 +262,8 @@ export default function CitizenHome() {
             }}
             className="bg-white/10 border border-white/20 text-white text-sm rounded-lg px-3 py-1.5 focus:ring-flood-accent focus:border-flood-accent [&>option]:text-gray-900 [&>option]:bg-white"
           >
-            <option value="" className="text-gray-900">🗺️ Tất cả tỉnh/thành</option>
-            {provinces.map(p => <option key={p.id} value={p.id} className="text-gray-900">{p.name}</option>)}
+            <option value="">🗺️ Tất cả tỉnh/thành</option>
+            {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
 
           <Link to="/login" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition">
@@ -371,7 +393,7 @@ export default function CitizenHome() {
               attribution='&copy; OpenStreetMap'
             />
             <FlyTo center={flyToCenter} zoom={14} />
-            {showForm && <LocationPicker onLocationSelect={handleMapClick} />}
+            {(showForm || pickingFromMap) && <LocationPicker onLocationSelect={handleMapClick} />}
 
             {/* Request markers */}
             {requests.map(req => (
@@ -456,6 +478,101 @@ export default function CitizenHome() {
             )}
           </MapContainer>
 
+          {/* Map picking mode banner */}
+          {pickingFromMap && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-blue-600 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm font-medium pointer-events-auto">
+              <MapPin size={18} className="animate-bounce shrink-0" />
+              <span>Nhấn vào vị trí cần cứu hộ trên bản đồ</span>
+              <button onClick={() => setPickingFromMap(false)} className="ml-1 hover:text-blue-200">
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Track Request Floating Panel */}
+          {showTrack && (
+            <div className="absolute bottom-36 right-6 z-30 bg-white rounded-2xl shadow-2xl p-4 w-80 border border-gray-200">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-gray-800 flex items-center gap-2 text-sm">
+                  <Eye size={15} /> Theo dõi yêu cầu cứu hộ
+                </h3>
+                <button onClick={() => { setShowTrack(false); setLookupResults(null); setLookupPhone(''); }}
+                  className="p-1 hover:bg-gray-100 rounded">
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex rounded-lg bg-gray-100 p-0.5 mb-3">
+                <button onClick={() => setTrackTab('code')}
+                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition
+                    ${trackTab === 'code' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  Mã theo dõi
+                </button>
+                <button onClick={() => setTrackTab('phone')}
+                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition
+                    ${trackTab === 'phone' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  Số điện thoại
+                </button>
+              </div>
+
+              {trackTab === 'code' ? (
+                <>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="Nhập mã (RQ-2024-...)"
+                      value={trackingCode} onChange={(e) => setTrackingCode(e.target.value)}
+                      className="flex-1 text-sm input-field py-2" autoFocus />
+                    <Link
+                      to={trackingCode ? `/track/${trackingCode}` : '#'}
+                      onClick={(e) => { if (!trackingCode) e.preventDefault(); }}
+                      className={`px-3 py-2 rounded-lg text-sm flex items-center transition
+                        ${trackingCode ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-400 pointer-events-none'}`}>
+                      <Search size={14} />
+                    </Link>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Mã theo dõi có dạng RQ-YYYY-XXXXXX</p>
+                </>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    <input type="tel" placeholder="Nhập số điện thoại..."
+                      value={lookupPhone} onChange={(e) => setLookupPhone(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && lookupByPhone()}
+                      className="flex-1 text-sm input-field py-2" autoFocus />
+                    <button onClick={lookupByPhone} disabled={lookupLoading || !lookupPhone.trim()}
+                      className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center">
+                      {lookupLoading
+                        ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        : <Search size={14} />}
+                    </button>
+                  </div>
+
+                  {lookupResults !== null && lookupResults.length === 0 && (
+                    <p className="text-xs text-gray-400 mt-3 text-center">Không tìm thấy yêu cầu nào với SĐT này</p>
+                  )}
+
+                  {lookupResults && lookupResults.length > 0 && (
+                    <div className="mt-3 space-y-2 max-h-52 overflow-y-auto">
+                      {lookupResults.map(r => (
+                        <Link key={r.tracking_code} to={`/track/${r.tracking_code}`}
+                          className="block p-2.5 rounded-lg border border-gray-100 hover:bg-blue-50 hover:border-blue-200 transition">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-mono font-medium text-blue-700">{r.tracking_code}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getStatusBadgeClass(r.status)}`}>
+                              {STATUS_LABELS[r.status]}
+                            </span>
+                          </div>
+                          {r.description && <p className="text-xs text-gray-500 mt-0.5 truncate">{r.description}</p>}
+                          <p className="text-[10px] text-gray-400 mt-0.5">{formatTimeAgo(r.created_at)}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {/* Emergency Action Buttons */}
           <div className="absolute bottom-6 right-6 z-30 flex flex-col gap-3">
             <button
@@ -474,142 +591,180 @@ export default function CitizenHome() {
             </button>
           </div>
 
-          {/* Toggle sidebar button (mobile)
+          {/* Toggle sidebar button (mobile) */}
           <button
             onClick={() => setShowSidebar(!showSidebar)}
-            className="absolute top-4 left-4 z-30 p-2 bg-white rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
+            className="absolute top-4 left-4 z-30 lg:hidden p-2 bg-white rounded-lg shadow-lg"
           >
             <Menu size={20} />
-          </button> */}
+          </button>
         </div>
       </div>
 
       {/* Rescue Request Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white w-full sm:w-[500px] max-h-[90vh] rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-y-auto">
-            <div className="sticky top-0 bg-gradient-to-r from-red-600 to-red-500 text-white px-6 py-4 rounded-t-2xl flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="animate-pulse" size={24} />
+      {showForm && !pickingFromMap && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white w-full sm:w-[520px] max-h-[92vh] rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col">
+            {/* Sticky header */}
+            <div className="sticky top-0 bg-gradient-to-r from-red-600 to-orange-500 text-white px-6 py-4 rounded-t-3xl sm:rounded-t-2xl flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="animate-pulse" size={22} />
+                </div>
                 <div>
-                  <h2 className="font-bold text-lg">Gửi yêu cầu cứu hộ</h2>
-                  <p className="text-red-100 text-xs">Không cần đăng nhập • Thông tin được bảo mật</p>
+                  <h2 className="font-bold text-lg leading-tight">Gửi yêu cầu cứu hộ</h2>
+                  <p className="text-red-100 text-[11px]">Không cần đăng nhập • Miễn phí • Bảo mật</p>
                 </div>
               </div>
-              <button onClick={() => setShowForm(false)} className="p-1 hover:bg-white/20 rounded-lg">
+              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-white/20 rounded-xl transition">
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* GPS Location */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  📍 Vị trí cần cứu hộ <span className="text-red-500">*</span>
-                </label>
+            <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-4">
+
+              {/* === SECTION 1: VỊ TRÍ === */}
+              <div className="bg-blue-50 rounded-xl p-4 space-y-3 border border-blue-100">
+                <p className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <MapPin size={13} /> Vị trí cần cứu hộ <span className="text-red-500">*</span>
+                </p>
                 <div className="flex gap-2">
                   <button type="button" onClick={detectGPS} disabled={gpsLoading}
-                    className="flex-1 btn-primary flex items-center justify-center gap-2 text-sm">
-                    <Navigation size={16} className={gpsLoading ? 'animate-spin' : ''} />
+                    className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition disabled:opacity-60">
+                    <Navigation size={15} className={gpsLoading ? 'animate-spin' : ''} />
                     {gpsLoading ? 'Đang lấy GPS...' : 'Lấy vị trí GPS'}
                   </button>
-                  <span className="text-gray-400 self-center text-sm">hoặc</span>
-                  <button type="button" onClick={() => alert('Nhấn vào bản đồ để chọn vị trí')}
-                    className="btn-outline text-sm">Chọn trên bản đồ</button>
+                  <button type="button" onClick={() => setPickingFromMap(true)}
+                    className="px-4 py-2.5 bg-white border border-blue-200 text-blue-700 text-sm font-medium rounded-xl hover:bg-blue-50 transition">
+                    Chọn trên bản đồ
+                  </button>
                 </div>
-                {form.latitude && (
-                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                    ✅ Đã chọn: {form.latitude}, {form.longitude}
-                  </p>
+                {form.latitude ? (
+                  <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    <MapPin size={13} className="text-green-600 shrink-0 mt-0.5" />
+                    <div className="text-xs">
+                      {form.geo_district_name || form.geo_province_name
+                        ? <span className="text-green-700 font-semibold">{[form.geo_district_name, form.geo_province_name].filter(Boolean).join(', ')}</span>
+                        : <span className="text-gray-400 italic">Đang xác định địa chỉ...</span>
+                      }
+                      <span className="text-gray-400 ml-1 block">{form.latitude}, {form.longitude}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-blue-400 text-center">Nhấn GPS hoặc chọn điểm trên bản đồ</p>
                 )}
-              </div>
-
-              {/* Address */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Địa chỉ chi tiết</label>
-                <input type="text" className="input-field" placeholder="Số nhà, đường, phường/xã..."
-                  value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
-              </div>
-
-              {/* Incident Type & Urgency */}
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Loại sự cố</label>
-                  <select className="input-field" value={form.incident_type_id}
-                    onChange={e => setForm(f => ({ ...f, incident_type_id: e.target.value }))}>
-                    <option value="">Chọn loại</option>
-                    {incidentTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mức độ khẩn cấp</label>
-                  <select className="input-field" value={form.urgency_level_id}
-                    onChange={e => setForm(f => ({ ...f, urgency_level_id: e.target.value }))}>
-                    <option value="">Chọn mức</option>
-                    {urgencyLevels.map(l => (
-                      <option key={l.id} value={l.id} style={{ color: l.color }}>
-                        {'●'.repeat(l.priority_score)} {l.name}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Địa chỉ chi tiết (số nhà, đường,...) <span className="text-red-500">*</span>
+                  </label>
+                  <input type="text" className="input-field text-sm" placeholder="VD: 45 Nguyễn Huệ, phường 1..."
+                    value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
                 </div>
               </div>
 
-              {/* Victim count & flood severity */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số người cần cứu</label>
-                  <input type="number" min="1" className="input-field"
-                    value={form.victim_count} onChange={e => setForm(f => ({ ...f, victim_count: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mức ngập (1-5)</label>
-                  <input type="range" min="1" max="5" className="w-full mt-2"
-                    value={form.flood_severity} onChange={e => setForm(f => ({ ...f, flood_severity: e.target.value }))} />
-                  <div className="flex justify-between text-[10px] text-gray-400">
-                    <span>Nhẹ</span><span>Vừa</span><span>Nặng</span><span>Rất nặng</span><span>Cực kỳ</span>
+              {/* === SECTION 2: THÔNG TIN SỰ CỐ === */}
+              <div className="bg-orange-50 rounded-xl p-4 space-y-3 border border-orange-100">
+                <p className="text-xs font-bold text-orange-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <AlertTriangle size={13} /> Thông tin sự cố
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Loại sự cố <span className="text-red-500">*</span>
+                    </label>
+                    <select className="input-field text-sm" value={form.incident_type_id}
+                      onChange={e => setForm(f => ({ ...f, incident_type_id: e.target.value }))}>
+                      <option value="">-- Chọn loại --</option>
+                      {incidentTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Mức độ khẩn cấp <span className="text-red-500">*</span>
+                    </label>
+                    <select className="input-field text-sm" value={form.urgency_level_id}
+                      onChange={e => setForm(f => ({ ...f, urgency_level_id: e.target.value }))}>
+                      <option value="">-- Chọn mức --</option>
+                      {urgencyLevels.map((l, i) => (
+                        <option key={l.id} value={l.id}>
+                          {'●'.repeat(urgencyLevels.length - i)} {l.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              </div>
 
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả tình huống</label>
-                <textarea rows={3} className="input-field resize-none"
-                  placeholder="Mô tả tình huống ngắn gọn: mực nước, tình trạng người dân, nhu cầu hỗ trợ..."
-                  value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-              </div>
-
-              {/* Contact */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên</label>
-                  <input type="text" className="input-field" placeholder="Tên người gửi"
-                    value={form.citizen_name} onChange={e => setForm(f => ({ ...f, citizen_name: e.target.value }))} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Số người cần cứu <span className="text-red-500">*</span>
+                    </label>
+                    <input type="number" min="1" className="input-field text-sm"
+                      value={form.victim_count} onChange={e => setForm(f => ({ ...f, victim_count: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Mức ngập: <span className="font-bold text-orange-600">Cấp {form.flood_severity}/5</span>
+                    </label>
+                    <input type="range" min="1" max="5" className="w-full mt-2"
+                      value={form.flood_severity} onChange={e => setForm(f => ({ ...f, flood_severity: e.target.value }))} />
+                    <div className="flex justify-between text-[9px] text-gray-400 mt-0.5">
+                      <span>Nhẹ</span><span>Vừa</span><span>Nặng</span><span>Rất nặng</span><span>Cực kỳ</span>
+                    </div>
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
-                  <input type="tel" className="input-field" placeholder="09xx xxx xxx"
-                    value={form.citizen_phone} onChange={e => setForm(f => ({ ...f, citizen_phone: e.target.value }))} />
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Mô tả tình huống (không bắt buộc)</label>
+                  <textarea rows={3} className="input-field text-sm resize-none"
+                    placeholder="Mô tả ngắn: mực nước, tình trạng sức khỏe, nhu cầu hỗ trợ..."
+                    value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
                 </div>
               </div>
 
-              {/* Image upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ảnh hiện trường (tối đa 5)</label>
-                <input type="file" multiple accept="image/*" className="text-sm"
-                  onChange={e => setFormImages(Array.from(e.target.files).slice(0, 5))} />
-                {formImages.length > 0 && (
-                  <p className="text-xs text-blue-600 mt-1">📷 {formImages.length} ảnh đã chọn</p>
-                )}
+              {/* === SECTION 3: THÔNG TIN LIÊN HỆ === */}
+              <div className="bg-purple-50 rounded-xl p-4 space-y-3 border border-purple-100">
+                <p className="text-xs font-bold text-purple-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Phone size={13} /> Thông tin liên hệ
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Họ tên <span className="text-red-500">*</span>
+                    </label>
+                    <input type="text" className="input-field text-sm" placeholder="Họ và tên"
+                      value={form.citizen_name} onChange={e => setForm(f => ({ ...f, citizen_name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Số điện thoại <span className="text-red-500">*</span>
+                    </label>
+                    <input type="tel" className="input-field text-sm" placeholder="09xx xxx xxx"
+                      value={form.citizen_phone} onChange={e => setForm(f => ({ ...f, citizen_phone: e.target.value }))} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Ảnh hiện trường (tối đa 5 ảnh)</label>
+                  <input type="file" multiple accept="image/*" className="text-xs w-full"
+                    onChange={e => setFormImages(Array.from(e.target.files).slice(0, 5))} />
+                  {formImages.length > 0 && (
+                    <p className="text-xs text-purple-600 mt-1">📷 Đã chọn {formImages.length} ảnh</p>
+                  )}
+                </div>
               </div>
+
+              {/* Required note */}
+              <p className="text-[11px] text-gray-400 text-center">
+                Các trường có dấu <span className="text-red-500 font-bold">*</span> là bắt buộc
+              </p>
 
               <button type="submit" disabled={submitting || !form.latitude}
-                className="w-full py-3 bg-gradient-to-r from-red-600 to-red-500 text-white font-bold rounded-xl
-                           hover:from-red-700 hover:to-red-600 transition-all transform hover:scale-[1.01]
-                           disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                className="w-full py-3.5 bg-gradient-to-r from-red-600 to-orange-500 text-white font-bold rounded-xl
+                           hover:from-red-700 hover:to-orange-600 transition-all shadow-lg shadow-red-500/25
+                           disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm">
                 <Send size={18} />
-                {submitting ? 'Đang gửi...' : 'GỬI YÊU CẦU CỨU HỘ NGAY'}
+                {submitting ? 'Đang gửi yêu cầu...' : 'GỬI YÊU CẦU CỨU HỘ NGAY'}
               </button>
             </form>
           </div>
