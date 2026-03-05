@@ -48,7 +48,7 @@ export default function UsersPage() {
   useEffect(() => {
     Promise.all([regionAPI.getAll(), regionAPI.getProvinces()])
       .then(([rRes, pRes]) => { setRegions(rRes.data || []); setProvinces(pRes.data || []); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const openCreate = () => {

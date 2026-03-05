@@ -88,6 +88,7 @@ export default function MissionsList() {
       formData.append('result_notes', completeNotes);
       formData.append('rescued_count', rescuedCount || 0);
       await missionAPI.submitResult(completeMission.id, formData);
+      await missionAPI.updateStatus(completeMission.id, { status: 'completed' });
       fetchMissions();
       setShowComplete(false);
       setCompleteNotes('');
@@ -105,7 +106,7 @@ export default function MissionsList() {
         <h1 className="text-xl font-bold text-gray-800">🚨 Nhiệm vụ Cứu hộ</h1>
         <div className="flex gap-1">
           {[{ key: '', label: 'Tất cả' }, { key: 'assigned', label: 'Mới' }, { key: 'en_route', label: 'Đang đi' },
-            { key: 'on_scene', label: 'Tại hiện trường' }, { key: 'completed', label: 'Xong' }
+          { key: 'on_scene', label: 'Tại hiện trường' }, { key: 'completed', label: 'Xong' }
           ].map(s => (
             <button key={s.key}
               onClick={() => { setStatusFilter(s.key); setPagination(p => ({ ...p, page: 1 })); }}
@@ -294,7 +295,7 @@ function MissionCard({ mission: m, expanded, onToggle, logs, onUpdateStatus, onC
                 <iframe
                   title="map"
                   width="100%" height="200" frameBorder="0" style={{ border: 0 }}
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${m.longitude-0.01},${m.latitude-0.008},${m.longitude+0.01},${m.latitude+0.008}&layer=mapnik&marker=${m.latitude},${m.longitude}`}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${m.longitude - 0.01},${m.latitude - 0.008},${m.longitude + 0.01},${m.latitude + 0.008}&layer=mapnik&marker=${m.latitude},${m.longitude}`}
                 />
               </div>
               <div className="flex gap-2 mt-2">
