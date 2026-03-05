@@ -238,7 +238,7 @@ export default function CitizenHome() {
               const prov = provinces.find(p => p.id === parseInt(e.target.value));
               if (prov) setFlyToCenter([prov.latitude, prov.longitude]);
             }}
-            className="bg-white/10 border border-white/20 text-white text-sm rounded-lg px-3 py-1.5 focus:ring-flood-accent focus:border-flood-accent hover:bg-white/20 transition-colors [&>option]:text-gray-900"
+            className="bg-white/10 border border-white/20 text-white text-sm rounded-lg px-3 py-1.5 focus:ring-flood-accent focus:border-flood-accent [&>option]:text-gray-900 [&>option]:bg-white"
           >
             <option value="" className="text-gray-900">🗺️ Tất cả tỉnh/thành</option>
             {provinces.map(p => <option key={p.id} value={p.id} className="text-gray-900">{p.name}</option>)}
@@ -281,7 +281,7 @@ export default function CitizenHome() {
 
       <div className="flex-1 flex overflow-hidden relative">
         {/* Sidebar - Request List */}
-        <aside className={`${showSidebar ? 'translate-x-0 w-80 lg:w-96' : '-translate-x-full w-0'} absolute lg:relative z-40 h-full bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden`}>
+        <aside className={`${showSidebar ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 absolute lg:relative z-40 w-80 lg:w-96 h-full bg-white border-r border-gray-200 flex flex-col transition-transform duration-300`}>
           {/* Stats */}
           <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
             <div className="grid grid-cols-3 gap-2 text-center">
@@ -383,21 +383,61 @@ export default function CitizenHome() {
                   click: () => { setSelectedRequest(req); }
                 }}
               >
-                <Popup maxWidth={300}>
-                  <div className="min-w-[220px]">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`badge text-[10px] ${getStatusBadgeClass(req.status)}`}>
+                <Popup maxWidth={280} className="rescue-popup">
+                  <div className="min-w-[240px] font-sans">
+                    {/* Status + code */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${getStatusBadgeClass(req.status)}`}>
                         {STATUS_LABELS[req.status]}
                       </span>
-                      <span className="text-[10px] text-gray-400">{req.tracking_code}</span>
+                      <span className="text-[10px] text-gray-400 font-mono tracking-wide">{req.tracking_code}</span>
                     </div>
-                    <p className="font-semibold text-sm">{req.incident_type || 'Cứu hộ'}</p>
-                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">{req.description}</p>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                      <span>👥 {req.victim_count} người</span>
-                      {req.district_name && <span>📍 {req.district_name}</span>}
+
+                    {/* Incident type */}
+                    <p className="font-bold text-sm text-gray-800">{req.incident_type || 'Cứu hộ'}</p>
+
+                    {/* Description */}
+                    {req.description && (
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">{req.description}</p>
+                    )}
+
+                    <div className="border-t border-gray-100 mt-2 pt-2 space-y-1.5">
+                      {/* Location + victims */}
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Users size={11} className="text-gray-400" /> {req.victim_count} người
+                        </span>
+                        {req.district_name && (
+                          <span className="flex items-center gap-1">
+                            <MapPin size={11} className="text-gray-400" /> {req.district_name}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Sender info */}
+                      {req.citizen_name && (
+                        <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-1.5">
+                          <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                            <span className="text-[11px] text-blue-700 font-bold">
+                              {req.citizen_name[0]?.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-gray-700 truncate">{req.citizen_name}</p>
+                            {req.citizen_phone && (
+                              <p className="text-[10px] text-gray-400">{req.citizen_phone}</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Team */}
+                      {req.team_name && (
+                        <p className="text-xs text-blue-600 font-medium flex items-center gap-1.5">
+                          <span>🚒</span> {req.team_name}
+                        </p>
+                      )}
                     </div>
-                    {req.team_name && <p className="text-xs mt-1 text-blue-600">🚒 {req.team_name}</p>}
                   </div>
                 </Popup>
               </Marker>
