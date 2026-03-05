@@ -50,27 +50,27 @@ export default function App() {
         }>
           <Route index element={<Dashboard />} />
           <Route path="requests" element={
-            <ProtectedRoute roles={['manager','coordinator']}>
+            <ProtectedRoute roles={['manager', 'coordinator']}>
               <RequestsList />
             </ProtectedRoute>
           } />
           <Route path="missions" element={
-            <ProtectedRoute roles={['manager','coordinator','rescue_team']}>
+            <ProtectedRoute roles={['manager', 'coordinator', 'rescue_team']}>
               <MissionsList />
             </ProtectedRoute>
           } />
           <Route path="teams" element={
-            <ProtectedRoute roles={['manager','coordinator']}>
+            <ProtectedRoute roles={['manager', 'coordinator']}>
               <TeamsPage />
             </ProtectedRoute>
           } />
           <Route path="resources" element={
-            <ProtectedRoute roles={['manager','coordinator']}>
+            <ProtectedRoute roles={['manager', 'coordinator']}>
               <ResourcesPage />
             </ProtectedRoute>
           } />
           <Route path="users" element={
-            <ProtectedRoute roles={['admin','manager']}>
+            <ProtectedRoute roles={['admin', 'manager']}>
               <UsersPage />
             </ProtectedRoute>
           } />
@@ -80,7 +80,7 @@ export default function App() {
             </ProtectedRoute>
           } />
           <Route path="reports" element={
-            <ProtectedRoute roles={['admin','manager']}>
+            <ProtectedRoute roles={['admin', 'manager']}>
               <ReportPage />
             </ProtectedRoute>
           } />
