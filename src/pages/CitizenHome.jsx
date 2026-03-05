@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { Phone, Send, Search, AlertTriangle, MapPin, Users, Clock, ChevronDown, 
-         ChevronUp, X, Menu, Shield, Waves, Navigation, Eye } from 'lucide-react';
+import {
+  Phone, Send, Search, AlertTriangle, MapPin, Users, Clock, ChevronDown,
+  ChevronUp, X, Menu, Shield, Waves, Navigation, Eye
+} from 'lucide-react';
 import { requestAPI, regionAPI } from '../services/api';
 import { getSocket } from '../services/socket';
 import { STATUS_LABELS, getStatusBadgeClass, formatTimeAgo } from '../utils/helpers';
@@ -114,18 +116,63 @@ export default function CitizenHome() {
     });
   }
 
+  async function reverseGeocodeAddress(lat, lng) {
+    try {
+      const base = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=vi`;
+      const opts = { headers: { 'User-Agent': 'FloodRescueApp/1.0' }, signal: AbortSignal.timeout(6000) };
+      // zoom=6 → tỉnh/thành phố (đủ tin cậy cho Việt Nam)
+      // Dữ liệu quận/phường của Nominatim không chính xác cho VN nên chỉ lấy tỉnh
+      const r6 = await fetch(`${base}&zoom=6`, opts).then(r => r.json());
+      const a6 = r6?.address || {};
+      const province = a6.state || a6.city || a6.province || '';
+      return { province, district: '' };
+    } catch { }
+    return null;
+  }
+
   function detectGPS() {
     if (!navigator.geolocation) return alert('Trình duyệt không hỗ trợ GPS');
     setGpsLoading(true);
+
+    const safetyTimer = setTimeout(() => {
+      setGpsLoading(false);
+      alert('Hết thời gian chờ GPS. Vui lòng thử lại hoặc chọn vị trí trên bản đồ.');
+    }, 12000);
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setForm(f => ({ ...f, latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) }));
-        setPickerLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setFlyToCenter([pos.coords.latitude, pos.coords.longitude]);
+        clearTimeout(safetyTimer);
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const accuracy = pos.coords.accuracy; // meters
+        setGpsLoading(false);
+        if (accuracy > 2000) {
+          // GPS không đủ chính xác (thường xảy ra trên máy tính) → tự mở map picker
+          // Vẫn set center bản đồ về vùng đó để user dễ tìm, nhưng không lưu tọa độ
+          setFlyToCenter([lat, lng]);
+          setPickingFromMap(true);
+          alert(`GPS máy tính kém chính xác (sai số ~${Math.round(accuracy / 1000)}km).\nVui lòng nhấp chọn đúng vị trí của bạn trên bản đồ.`);
+          return;
+        }
+        // GPS đủ chính xác (điện thoại hoặc máy tính có GPS chip)
+        setForm(f => ({ ...f, latitude: lat.toFixed(6), longitude: lng.toFixed(6) }));
+        setPickerLocation({ lat, lng });
+        setFlyToCenter([lat, lng]);
+        reverseGeocodeAddress(lat, lng).then(geo => {
+          if (geo) setForm(f => ({ ...f, geo_province_name: geo.province, geo_district_name: geo.district }));
+        });
+      },
+      (err) => {
+        clearTimeout(safetyTimer);
+        const msgs = {
+          1: 'Bạn đã từ chối quyền GPS. Vui lòng cấp quyền trong cài đặt trình duyệt hoặc chọn vị trí trên bản đồ.',
+          2: 'Không thể xác định vị trí GPS. Vui lòng chọn vị trí trên bản đồ.',
+          3: 'Hết thời gian chờ GPS. Vui lòng thử lại hoặc chọn vị trí trên bản đồ.',
+        };
+        alert(msgs[err.code] || 'Không thể lấy vị trí GPS. Vui lòng chọn trên bản đồ.');
         setGpsLoading(false);
       },
-      () => { alert('Không thể lấy vị trí GPS. Vui lòng chọn trên bản đồ.'); setGpsLoading(false); },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   }
 
@@ -139,7 +186,13 @@ export default function CitizenHome() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.latitude || !form.longitude) return alert('Vui lòng chọn vị trí trên bản đồ hoặc bật GPS');
-    
+    if (!form.citizen_name.trim()) return alert('Vui lòng nhập họ tên người gửi');
+    if (!form.citizen_phone.trim()) return alert('Vui lòng nhập số điện thoại liên hệ');
+    if (!form.incident_type_id) return alert('Vui lòng chọn loại sự cố');
+    if (!form.urgency_level_id) return alert('Vui lòng chọn mức độ khẩn cấp');
+    if (!form.address.trim()) return alert('Vui lòng nhập địa chỉ chi tiết (số nhà, đường,...)');
+    if (!form.victim_count || parseInt(form.victim_count) < 1) return alert('Vui lòng nhập số người cần cứu');
+
     setSubmitting(true);
     try {
       const formData = new FormData();
@@ -149,7 +202,7 @@ export default function CitizenHome() {
       const { data } = await requestAPI.create(formData);
       setSubmitResult(data);
       setShowForm(false);
-      setForm({ citizen_name: '', citizen_phone: '', latitude: '', longitude: '', address: '', incident_type_id: '', urgency_level_id: '', description: '', victim_count: '1', support_type: '', flood_severity: '2' });
+      setForm({ citizen_name: '', citizen_phone: '', latitude: '', longitude: '', address: '', incident_type_id: '', urgency_level_id: '', description: '', victim_count: '1', support_type: '', flood_severity: '2', geo_province_name: '', geo_district_name: '' });
       setFormImages([]);
       setPickerLocation(null);
       loadMapData();
@@ -165,9 +218,9 @@ export default function CitizenHome() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-flood-dark">
       {/* Top Bar */}
-      <header className="bg-gradient-to-r from-flood-dark via-flood to-flood-dark text-white px-4 py-2 flex items-center justify-between z-50 shadow-lg border-b border-white/10">
+      <header className="bg-gradient-to-r from-flood-dark via-flood to-flood-dark text-white px-4 py-2 flex items-center justify-between z-50 shadow-lg border-b border-white/10 shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={() => setShowSidebar(!showSidebar)} className="lg:hidden p-1.5 hover:bg-white/10 rounded">
+          <button onClick={() => setShowSidebar(!showSidebar)} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
             <Menu size={20} />
           </button>
           <Waves className="text-flood-accent" size={28} />
@@ -185,10 +238,10 @@ export default function CitizenHome() {
               const prov = provinces.find(p => p.id === parseInt(e.target.value));
               if (prov) setFlyToCenter([prov.latitude, prov.longitude]);
             }}
-            className="bg-white/10 border border-white/20 text-white text-sm rounded-lg px-3 py-1.5 focus:ring-flood-accent focus:border-flood-accent"
+            className="bg-white/10 border border-white/20 text-white text-sm rounded-lg px-3 py-1.5 focus:ring-flood-accent focus:border-flood-accent hover:bg-white/20 transition-colors [&>option]:text-gray-900"
           >
-            <option value="">🗺️ Tất cả tỉnh/thành</option>
-            {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            <option value="" className="text-gray-900">🗺️ Tất cả tỉnh/thành</option>
+            {provinces.map(p => <option key={p.id} value={p.id} className="text-gray-900">{p.name}</option>)}
           </select>
 
           <Link to="/login" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition">
@@ -228,7 +281,7 @@ export default function CitizenHome() {
 
       <div className="flex-1 flex overflow-hidden relative">
         {/* Sidebar - Request List */}
-        <aside className={`${showSidebar ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 absolute lg:relative z-40 w-80 lg:w-96 h-full bg-white border-r border-gray-200 flex flex-col transition-transform duration-300`}>
+        <aside className={`${showSidebar ? 'translate-x-0 w-80 lg:w-96' : '-translate-x-full w-0'} absolute lg:relative z-40 h-full bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden`}>
           {/* Stats */}
           <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
             <div className="grid grid-cols-3 gap-2 text-center">
@@ -381,13 +434,13 @@ export default function CitizenHome() {
             </button>
           </div>
 
-          {/* Toggle sidebar button (mobile) */}
+          {/* Toggle sidebar button (mobile)
           <button
             onClick={() => setShowSidebar(!showSidebar)}
-            className="absolute top-4 left-4 z-30 lg:hidden p-2 bg-white rounded-lg shadow-lg"
+            className="absolute top-4 left-4 z-30 p-2 bg-white rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
           >
             <Menu size={20} />
-          </button>
+          </button> */}
         </div>
       </div>
 
