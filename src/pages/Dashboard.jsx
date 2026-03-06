@@ -24,7 +24,7 @@ function StatCard({ icon: Icon, label, value, sub, color = 'blue', trend }) {
         </div>
         {trend !== undefined && (
           <span className={`flex items-center gap-0.5 text-xs font-medium ${trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {trend >= 0 ? <ArrowUp size={12}/> : <ArrowDown size={12}/>}
+            {trend >= 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
             {Math.abs(trend)}%
           </span>
         )}
@@ -63,11 +63,8 @@ export default function Dashboard() {
           regionAPI.getProvinces(),
           regionAPI.getWeatherStatus(),
         ]);
-        // FIX: /overview returns { requests:{}, teams:{}, vehicles:{}, active_alerts:N }
         if (ov.status === 'fulfilled') setOverview(ov.value.data?.requests || ov.value.data);
-        // FIX: /by-province returns raw array with field 'total_requests' not 'total'
         if (bp.status === 'fulfilled') setByProvince(bp.value.data || []);
-        // FIX: /team-stats returns { status_summary:{total,available,...}, top_teams:[] }
         if (ts.status === 'fulfilled') setTeamStats(ts.value.data?.status_summary || ts.value.data);
         if (ro.status === 'fulfilled') setResourceOverview(ro.value.data);
         if (wa.status === 'fulfilled') setWeatherAlerts(wa.value.data || []);
@@ -135,11 +132,10 @@ export default function Dashboard() {
         <div className="space-y-2">
           {weatherAlerts.slice(0, 3).map(alert => (
             <div key={alert.id}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm ${
-                alert.severity === 'critical' ? 'bg-red-50 border-red-200 text-red-800' :
-                alert.severity === 'high' ? 'bg-orange-50 border-orange-200 text-orange-800' :
-                'bg-yellow-50 border-yellow-200 text-yellow-800'
-              }`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg border text-sm ${alert.severity === 'critical' ? 'bg-red-50 border-red-200 text-red-800' :
+                  alert.severity === 'high' ? 'bg-orange-50 border-orange-200 text-orange-800' :
+                    'bg-yellow-50 border-yellow-200 text-yellow-800'
+                }`}
             >
               <CloudRain size={18} />
               <span className="font-medium">{alert.title}</span>
@@ -234,11 +230,10 @@ export default function Dashboard() {
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Dự báo 5 ngày</p>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     {weatherData.forecast.daily.slice(0, 5).map((day, i) => (
-                      <div key={i} className={`text-center p-3 rounded-lg border ${
-                        day.total_rain_mm >= 50 ? 'bg-red-50 border-red-200' :
-                        day.total_rain_mm >= 20 ? 'bg-orange-50 border-orange-200' :
-                        'bg-gray-50 border-gray-100'
-                      }`}>
+                      <div key={i} className={`text-center p-3 rounded-lg border ${day.total_rain_mm >= 50 ? 'bg-red-50 border-red-200' :
+                          day.total_rain_mm >= 20 ? 'bg-orange-50 border-orange-200' :
+                            'bg-gray-50 border-gray-100'
+                        }`}>
                         <p className="text-xs text-gray-500 font-medium">
                           {new Date(day.date).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })}
                         </p>
@@ -246,9 +241,8 @@ export default function Dashboard() {
                         <p className="text-sm font-bold text-gray-700">{day.temp_min}° — {day.temp_max}°</p>
                         <p className="text-[10px] text-gray-400 capitalize">{day.weather_desc}</p>
                         {day.total_rain_mm > 0 && (
-                          <p className={`text-[10px] mt-0.5 font-medium ${
-                            day.total_rain_mm >= 50 ? 'text-red-600' : 'text-blue-600'
-                          }`}>
+                          <p className={`text-[10px] mt-0.5 font-medium ${day.total_rain_mm >= 50 ? 'text-red-600' : 'text-blue-600'
+                            }`}>
                             🌧 {day.total_rain_mm} mm
                           </p>
                         )}

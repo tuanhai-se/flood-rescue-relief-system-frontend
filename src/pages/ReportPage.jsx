@@ -3,14 +3,14 @@ import { dashboardAPI } from '../services/api';
 import { FileText, Printer, TrendingUp, Users, Truck, MapPin, Clock, CheckCircle } from 'lucide-react';
 
 export default function ReportPage() {
-  const [overview, setOverview]       = useState(null);
-  const [teamStats, setTeamStats]     = useState(null);
-  const [byProvince, setByProvince]   = useState([]);
-  const [dailyTrend, setDailyTrend]   = useState([]);
+  const [overview, setOverview] = useState(null);
+  const [teamStats, setTeamStats] = useState(null);
+  const [byProvince, setByProvince] = useState([]);
+  const [dailyTrend, setDailyTrend] = useState([]);
   const [resourceUsage, setResourceUsage] = useState(null);
-  const [responseTime, setResponseTime]   = useState(null);
-  const [loading, setLoading]         = useState(true);
-  const [printDate]                   = useState(new Date().toLocaleDateString('vi-VN', {
+  const [responseTime, setResponseTime] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [printDate] = useState(new Date().toLocaleDateString('vi-VN', {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit'
   }));
@@ -235,7 +235,7 @@ export default function ReportPage() {
                   <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Phương tiện</p>
                   <p className="text-2xl font-bold text-blue-700">{resourceUsage.vehicles?.total ?? '—'}</p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Sẵn sàng: {resourceUsage.vehicles?.available ?? '—'} &nbsp;|&nbsp; 
+                    Sẵn sàng: {resourceUsage.vehicles?.available ?? '—'} &nbsp;|&nbsp;
                     Đang dùng: {resourceUsage.vehicles?.in_use ?? '—'}
                   </p>
                 </div>

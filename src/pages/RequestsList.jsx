@@ -148,7 +148,7 @@ export default function RequestsList() {
       {/* Status tabs */}
       <div className="flex gap-1 overflow-x-auto pb-1">
         {[{ key: '', label: 'Tất cả' }, { key: 'pending', label: 'Chờ xử lý' }, { key: 'verified', label: 'Đã xác minh' },
-          { key: 'assigned', label: 'Đã phân công' }, { key: 'in_progress', label: 'Đang xử lý' }, { key: 'completed', label: 'Hoàn thành' }
+        { key: 'assigned', label: 'Đã phân công' }, { key: 'in_progress', label: 'Đang xử lý' }, { key: 'completed', label: 'Hoàn thành' }
         ].map(s => (
           <button key={s.key}
             onClick={() => { setFilters(f => ({ ...f, status: s.key })); setPagination(p => ({ ...p, page: 1 })); }}

@@ -39,7 +39,7 @@ export default function TeamsPage() {
   useEffect(() => { fetchTeams(); }, [filterProvince, filterStatus]);
 
   useEffect(() => {
-    regionAPI.getProvinces().then(res => setProvinces(res.data || [])).catch(() => {});
+    regionAPI.getProvinces().then(res => setProvinces(res.data || [])).catch(() => { });
   }, []);
 
   const openCreate = () => {
@@ -75,7 +75,6 @@ export default function TeamsPage() {
 
   const toggleStatus = async (team, newStatus) => {
     try {
-      // FIX: use /status endpoint (allows coordinator) instead of general update (admin/manager only)
       await teamAPI.updateStatus(team.id, { status: newStatus });
       fetchTeams();
     } catch (err) { alert('Lỗi: ' + (err.response?.data?.error || err.message)); }

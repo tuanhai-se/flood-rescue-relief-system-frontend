@@ -28,17 +28,17 @@ const SOURCE_TYPE_LABELS = {
 };
 
 const VEHICLE_STATUS_BADGE = {
-  available:   'bg-green-100 text-green-700',
-  in_use:      'bg-orange-100 text-orange-700',
+  available: 'bg-green-100 text-green-700',
+  in_use: 'bg-orange-100 text-orange-700',
   maintenance: 'bg-yellow-100 text-yellow-700',
-  retired:     'bg-gray-100 text-gray-500',
+  retired: 'bg-gray-100 text-gray-500',
 };
 
 const VREQ_STATUS_BADGE = {
-  pending:   'bg-yellow-100 text-yellow-700',
-  approved:  'bg-blue-100 text-blue-700',
+  pending: 'bg-yellow-100 text-yellow-700',
+  approved: 'bg-blue-100 text-blue-700',
   fulfilled: 'bg-green-100 text-green-700',
-  rejected:  'bg-red-100 text-red-700',
+  rejected: 'bg-red-100 text-red-700',
   cancelled: 'bg-gray-100 text-gray-500',
 };
 const VREQ_STATUS_LABELS = {
@@ -76,8 +76,8 @@ export default function ResourcesPage() {
   const [vReqSaving, setVReqSaving] = useState(false);
 
   useEffect(() => {
-    regionAPI.getProvinces().then(r => setProvinces(r.data || [])).catch(() => {});
-    teamAPI.getAll().then(r => setTeams(r.data?.data || r.data || [])).catch(() => {});
+    regionAPI.getProvinces().then(r => setProvinces(r.data || [])).catch(() => { });
+    teamAPI.getAll().then(r => setTeams(r.data?.data || r.data || [])).catch(() => { });
   }, []);
 
   useEffect(() => { loadData(); }, [tab, filterWarehouse]);

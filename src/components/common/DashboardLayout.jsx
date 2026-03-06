@@ -10,22 +10,38 @@ import { notificationAPI } from '../../services/api';
 import { ROLE_LABELS } from '../../utils/helpers';
 
 const NAV_ITEMS = [
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan',
-    roles: ['admin', 'manager', 'coordinator', 'rescue_team'] },
-  { path: '/dashboard/requests', icon: FileText, label: 'Yêu cầu cứu hộ',
-    roles: ['manager', 'coordinator'] },
-  { path: '/dashboard/missions', icon: Navigation, label: 'Nhiệm vụ',
-    roles: ['manager', 'coordinator', 'rescue_team'] },
-  { path: '/dashboard/teams', icon: Users, label: 'Đội cứu hộ',
-    roles: ['manager', 'coordinator'] },
-  { path: '/dashboard/resources', icon: Truck, label: 'Tài nguyên',
-    roles: ['manager', 'coordinator'] },
-  { path: '/dashboard/users', icon: UserCog, label: 'Quản lý người dùng',
-    roles: ['admin', 'manager'] },
-  { path: '/dashboard/config', icon: Settings, label: 'Cấu hình hệ thống',
-    roles: ['admin'] },
-  { path: '/dashboard/reports', icon: FileText, label: 'Báo cáo tổng hợp',
-    roles: ['admin', 'manager'] },
+  {
+    path: '/dashboard', icon: LayoutDashboard, label: 'Tổng quan',
+    roles: ['admin', 'manager', 'coordinator', 'rescue_team']
+  },
+  {
+    path: '/dashboard/requests', icon: FileText, label: 'Yêu cầu cứu hộ',
+    roles: ['manager', 'coordinator']
+  },
+  {
+    path: '/dashboard/missions', icon: Navigation, label: 'Nhiệm vụ',
+    roles: ['manager', 'coordinator', 'rescue_team']
+  },
+  {
+    path: '/dashboard/teams', icon: Users, label: 'Đội cứu hộ',
+    roles: ['manager', 'coordinator']
+  },
+  {
+    path: '/dashboard/resources', icon: Truck, label: 'Tài nguyên',
+    roles: ['manager', 'coordinator']
+  },
+  {
+    path: '/dashboard/users', icon: UserCog, label: 'Quản lý người dùng',
+    roles: ['admin', 'manager']
+  },
+  {
+    path: '/dashboard/config', icon: Settings, label: 'Cấu hình hệ thống',
+    roles: ['admin']
+  },
+  {
+    path: '/dashboard/reports', icon: FileText, label: 'Báo cáo tổng hợp',
+    roles: ['admin', 'manager']
+  },
 ];
 
 export default function DashboardLayout() {
