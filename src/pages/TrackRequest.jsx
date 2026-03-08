@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Search, MapPin, Clock, Users, Phone, CheckCircle, AlertTriangle, 
-         Truck, Waves, ArrowLeft, Navigation, FileText } from 'lucide-react';
+import {
+  Search, MapPin, Clock, Users, Phone, CheckCircle, AlertTriangle,
+  Truck, Waves, ArrowLeft, Navigation, FileText
+} from 'lucide-react';
 import { requestAPI } from '../services/api';
 import { STATUS_LABELS, formatDate, formatTimeAgo } from '../utils/helpers';
 import { getSocket } from '../services/socket';
@@ -37,14 +39,14 @@ export default function TrackRequest() {
   useEffect(() => {
     if (request?.tracking_code) {
       const socket = getSocket();
-      socket.emit('join_tracking', request.tracking_code);
+      socket.emit('track_request', request.tracking_code);
       socket.on('request_updated', (updated) => {
         if (updated.id === request.id) {
           setRequest(prev => ({ ...prev, ...updated }));
         }
       });
       return () => {
-        socket.emit('leave_tracking', request.tracking_code);
+        socket.emit('untrack_request', request.tracking_code);
         socket.off('request_updated');
       };
     }
@@ -143,7 +145,7 @@ export default function TrackRequest() {
                   <div className="flex items-center justify-between relative">
                     {/* Progress line */}
                     <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 z-0" />
-                    <div 
+                    <div
                       className="absolute top-5 left-0 h-0.5 bg-blue-500 z-0 transition-all duration-500"
                       style={{ width: `${(currentStep / (STATUS_STEPS.length - 1)) * 100}%` }}
                     />
@@ -245,7 +247,7 @@ export default function TrackRequest() {
                 <div className="mt-4 pt-4 border-t">
                   <p className="text-xs text-gray-500">Thời gian phản hồi</p>
                   <p className="text-lg font-bold text-blue-600">
-                    {request.response_time_minutes < 60 
+                    {request.response_time_minutes < 60
                       ? `${request.response_time_minutes} phút`
                       : `${Math.round(request.response_time_minutes / 60 * 10) / 10} giờ`}
                   </p>
