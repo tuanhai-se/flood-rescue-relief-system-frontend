@@ -158,4 +158,22 @@ export const auditLogAPI = {
   getActions: () => api.get('/audit-logs/actions'),
 };
 
+// === TASKS ===
+export const taskAPI = {
+  getAll: (params) => api.get('/tasks', { params }),
+  getById: (id) => api.get(`/tasks/${id}`),
+  create: (data) => api.post('/tasks', data),
+  updateStatus: (id, data) => api.put(`/tasks/${id}/status`, data),
+  suggestRequests: (params) => api.get('/tasks/suggest-requests', { params }),
+  assignMember: (id, data) => api.put(`/tasks/${id}/assign-member`, data),
+  submitReport: (id, data) => api.post(`/tasks/${id}/reports`, data),
+  resolveReport: (id, reportId, data) => api.put(`/tasks/${id}/reports/${reportId}/resolve`, data),
+  unresolveReport: (id, reportId) => api.put(`/tasks/${id}/reports/${reportId}/unresolve`),
+  dispatchSupport: (id, data) => api.post(`/tasks/${id}/dispatch-support`, data),
+  confirmComplete: (id) => api.put(`/tasks/${id}/confirm-complete`),
+  cancel: (id, data) => api.put(`/tasks/${id}/cancel`, data),
+  setEstimatedCompletion: (id, data) => api.put(`/tasks/${id}/estimated-completion`, data),
+  setScheduledDate: (id, data) => api.put(`/tasks/${id}/scheduled-date`, data),
+};
+
 export default api;
