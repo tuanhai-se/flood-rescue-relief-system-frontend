@@ -37,6 +37,7 @@ export const authAPI = {
 export const requestAPI = {
   create: (formData) => api.post('/requests', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   track: (code) => api.get(`/requests/track/${code}`),
+  trackUpdate: (code, data) => api.put(`/requests/track/${code}/update`, data),
   trackNotifications: (code) => api.get(`/requests/track/${code}/notifications`),
   confirmRescue: (code) => api.put(`/requests/track/${code}/confirm`),
   getMapData: (params) => api.get('/requests/map', { params }),
@@ -47,9 +48,9 @@ export const requestAPI = {
   reject: (id, data) => api.put(`/requests/${id}/reject`, data),
   assign: (id, data) => api.put(`/requests/${id}/assign`, data),
   updateStatus: (id, data) => api.put(`/requests/${id}/status`, data),
-  // FIX: route PUT /requests/:id/cancel đã được thêm vào backend
   cancel: (id) => api.put(`/requests/${id}/cancel`),
   suggestTeam: (id) => api.get(`/requests/${id}/suggest-team`),
+  lookupByPhone: (phone) => api.get('/requests/lookup', { params: { phone } }),
 };
 
 // === MISSIONS ===
@@ -57,7 +58,6 @@ export const missionAPI = {
   getAll: (params) => api.get('/missions', { params }),
   getById: (id) => api.get(`/missions/${id}`),
   updateStatus: (id, data) => api.put(`/missions/${id}/status`, data),
-  // FIX: backend dùng PUT (đã sửa từ POST)
   submitResult: (id, formData) => api.put(`/missions/${id}/result`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   getLogs: (id) => api.get(`/missions/${id}/logs`),
 };
@@ -70,9 +70,7 @@ export const teamAPI = {
   update: (id, data) => api.put(`/teams/${id}`, data),
   updateLocation: (id, data) => api.put(`/teams/${id}/location`, data),
   addMember: (id, data) => api.post(`/teams/${id}/members`, data),
-  // FIX: backend xóa theo membership ID, không phải user ID
   removeMember: (id, memberId) => api.delete(`/teams/${id}/members/${memberId}`),
-  // FIX: route /teams/:id/status đã được thêm vào backend
   updateStatus: (id, data) => api.put(`/teams/${id}/status`, data),
 };
 
@@ -97,25 +95,13 @@ export const resourceAPI = {
 // === REGIONS ===
 export const regionAPI = {
   getAll: () => api.get('/regions'),
-  // DB provinces (cho admin/seed)
   getProvinces: (params) => api.get('/regions/provinces', { params }),
-  getDistricts: (params) => api.get('/regions/districts', { params }),
-  getWards: (params) => api.get('/regions/wards', { params }),
-  // Vietnam Open API (63 tỉnh/thành — dùng cho dropdowns)
-  getVnProvinces: () => api.get('/regions/vn/provinces'),
-  getVnDistricts: (province_code) => api.get('/regions/vn/districts', { params: { province_code } }),
-  getVnWards: (district_code) => api.get('/regions/vn/wards', { params: { district_code } }),
   getIncidentTypes: () => api.get('/regions/incident-types'),
   getUrgencyLevels: () => api.get('/regions/urgency-levels'),
   getWeatherAlerts: (params) => api.get('/regions/weather-alerts', { params }),
-  createWeatherAlert: (data) => api.post('/regions/weather-alerts', data),
-  createIncidentType: (data) => api.post('/regions/incident-types', data),
-  createUrgencyLevel: (data) => api.post('/regions/urgency-levels', data),
-  // --- Weather API (OpenWeatherMap) ---
   getWeatherStatus: () => api.get('/regions/weather-status'),
   getWeatherCurrent: (provinceId) => api.get(`/regions/weather-current/${provinceId}`),
   getWeatherForecast: (provinceId) => api.get(`/regions/weather-forecast/${provinceId}`),
-  getWeatherMulti: (provinceIds) => api.get('/regions/weather-multi', { params: { province_ids: provinceIds.join(',') } }),
   autoSyncWeatherAlerts: (data) => api.post('/regions/weather-alerts/auto-sync', data),
 };
 
@@ -138,12 +124,9 @@ export const userAPI = {
 export const dashboardAPI = {
   getOverview: (params) => api.get('/dashboard/overview', { params }),
   getRequestsByProvince: (params) => api.get('/dashboard/by-province', { params }),
-  // FIX: endpoint đã được thêm vào backend
   getTeamStats: (params) => api.get('/dashboard/team-stats', { params }),
-  // FIX: endpoint đã được thêm vào backend
   getResourceOverview: () => api.get('/dashboard/resource-overview'),
   getCoordinatorWorkload: (params) => api.get('/dashboard/coordinator-workload', { params }),
-  // FIX: endpoint đã được thêm vào backend
   getWeatherImpact: () => api.get('/dashboard/weather-impact'),
   getHeatmap: (params) => api.get('/dashboard/heatmap', { params }),
   getByProvince: (params) => api.get('/dashboard/by-province', { params }),
@@ -173,6 +156,24 @@ export const configAPI = {
 export const auditLogAPI = {
   getAll: (params) => api.get('/audit-logs', { params }),
   getActions: () => api.get('/audit-logs/actions'),
+};
+
+// === TASKS ===
+export const taskAPI = {
+  getAll: (params) => api.get('/tasks', { params }),
+  getById: (id) => api.get(`/tasks/${id}`),
+  create: (data) => api.post('/tasks', data),
+  updateStatus: (id, data) => api.put(`/tasks/${id}/status`, data),
+  suggestRequests: (params) => api.get('/tasks/suggest-requests', { params }),
+  assignMember: (id, data) => api.put(`/tasks/${id}/assign-member`, data),
+  submitReport: (id, data) => api.post(`/tasks/${id}/reports`, data),
+  resolveReport: (id, reportId, data) => api.put(`/tasks/${id}/reports/${reportId}/resolve`, data),
+  unresolveReport: (id, reportId) => api.put(`/tasks/${id}/reports/${reportId}/unresolve`),
+  dispatchSupport: (id, data) => api.post(`/tasks/${id}/dispatch-support`, data),
+  confirmComplete: (id) => api.put(`/tasks/${id}/confirm-complete`),
+  cancel: (id, data) => api.put(`/tasks/${id}/cancel`, data),
+  setEstimatedCompletion: (id, data) => api.put(`/tasks/${id}/estimated-completion`, data),
+  setScheduledDate: (id, data) => api.put(`/tasks/${id}/scheduled-date`, data),
 };
 
 export default api;
