@@ -71,11 +71,12 @@ export default function TrackRequest() {
     regionAPI
       .getIncidentTypes()
       .then((r) => setIncidentTypes(r.data))
-      .catch(() => { });
+      .catch(() => {});
+
     regionAPI
       .getUrgencyLevels()
       .then((r) => setUrgencyLevels(r.data))
-      .catch(() => { });
+      .catch(() => {});
   }, []);
 
   async function searchRequest(searchCode) {
@@ -223,19 +224,19 @@ export default function TrackRequest() {
 
               {(request.status === "rejected" ||
                 request.status === "cancelled") && (
-                  <div className="px-6 py-4 text-center">
-                    <p className="text-red-600 font-medium">
-                      {request.status === "rejected"
-                        ? "Yêu cầu đã bị từ chối"
-                        : "Yêu cầu đã bị hủy"}
+                <div className="px-6 py-4 text-center">
+                  <p className="text-red-600 font-medium">
+                    {request.status === "rejected"
+                      ? "Yêu cầu đã bị từ chối"
+                      : "Yêu cầu đã bị hủy"}
+                  </p>
+                  {request.reject_reason && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      {request.reject_reason}
                     </p>
-                    {request.reject_reason && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        {request.reject_reason}
-                      </p>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Details card */}
