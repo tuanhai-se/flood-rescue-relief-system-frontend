@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { userAPI, regionAPI } from '../services/api';
+import { userAPI, regionAPI, teamAPI } from '../services/api';
 import useAuthStore from '../store/authStore';
 import { ROLE_LABELS, formatDate } from '../utils/helpers';
 import { Plus, Search, Edit2, Key, UserCheck, UserX, X, Save, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -20,13 +20,14 @@ export default function UsersPage() {
   const [filterRole, setFilterRole] = useState('');
   const [provinces, setProvinces] = useState([]);
   const [regions, setRegions] = useState([]);
+  const [teams, setTeams] = useState([]);
 
   // Form
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [formData, setFormData] = useState({
     username: '', email: '', password: '', full_name: '', phone: '',
-    role: 'rescue_team', region_id: '', province_id: ''
+    role: 'rescue_team', region_id: '', province_id: '', team_id: '', role_in_team: 'member'
   });
   const [saving, setSaving] = useState(false);
 
@@ -46,9 +47,13 @@ export default function UsersPage() {
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   useEffect(() => {
-    Promise.all([regionAPI.getAll(), regionAPI.getProvinces()])
-      .then(([rRes, pRes]) => { setRegions(rRes.data || []); setProvinces(pRes.data || []); })
-      .catch(() => { });
+    Promise.all([regionAPI.getAll(), regionAPI.getProvinces(), teamAPI.getAll({})])
+      .then(([rRes, pRes, tRes]) => {
+        setRegions(rRes.data || []);
+        setProvinces(pRes.data || []);
+        setTeams(tRes.data || []);
+      })
+      .catch(() => {});
   }, []);
 
   const openCreate = () => {
@@ -81,7 +86,17 @@ export default function UsersPage() {
         if (!formData.username || !formData.email || !formData.full_name) {
           return alert('Vui lòng nhập đầy đủ thông tin.');
         }
-        await userAPI.create(formData);
+        const res = await userAPI.create(formData);
+        // Nếu là rescue_team và chọn đội → gán vào đội
+        if (formData.role === 'rescue_team' && formData.team_id) {
+          const newUserId = res.data?.id;
+          if (newUserId) {
+            await teamAPI.addMember(formData.team_id, {
+              user_id: newUserId,
+              role_in_team: formData.role_in_team || 'member'
+            });
+          }
+        }
       }
       setShowForm(false);
       fetchUsers();
@@ -274,13 +289,37 @@ export default function UsersPage() {
               <div>
                 <label className="text-sm font-medium text-gray-700">Tỉnh/Thành</label>
                 <select className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" value={formData.province_id}
-                  onChange={e => setFormData(d => ({ ...d, province_id: e.target.value }))}>
+                  onChange={e => setFormData(d => ({ ...d, province_id: e.target.value, team_id: '' }))}>
                   <option value="">Không chọn</option>
                   {provinces
                     .filter(p => !formData.region_id || p.region_id == formData.region_id)
                     .map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </div>
+              {!editUser && formData.role === 'rescue_team' && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Gán vào đội</label>
+                    <select className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" value={formData.team_id}
+                      onChange={e => setFormData(d => ({ ...d, team_id: e.target.value }))}>
+                      <option value="">Không gán (gán sau)</option>
+                      {teams
+                        .filter(t => !formData.province_id || t.province_id == formData.province_id)
+                        .map(t => <option key={t.id} value={t.id}>{t.name} ({t.province_name})</option>)}
+                    </select>
+                  </div>
+                  {formData.team_id && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Vai trò trong đội</label>
+                      <select className="w-full mt-1 px-3 py-2 border rounded-lg text-sm" value={formData.role_in_team}
+                        onChange={e => setFormData(d => ({ ...d, role_in_team: e.target.value }))}>
+                        <option value="member">Thành viên</option>
+                        <option value="leader">Đội trưởng</option>
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             <div className="flex gap-2 justify-end mt-5">
               <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50">Hủy</button>

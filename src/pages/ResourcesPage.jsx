@@ -96,37 +96,25 @@ const TABS = [
     key: "warehouses",
     label: "Kho hàng",
     icon: Warehouse,
-    roles: ["manager", "coordinator"],
+    roles: ["manager", "warehouse_manager", "coordinator"],
   },
   {
     key: "distributions",
     label: "Cấp phát vật tư",
     icon: Send,
-    roles: ["manager", "coordinator"],
+    roles: ["manager", "warehouse_manager", "coordinator"],
   },
   {
     key: "vehicle_dispatches",
     label: "Điều xe cho đội",
     icon: Truck,
-    roles: ["manager", "coordinator"],
-  },
-  {
-    key: "supply_transfers",
-    label: "Điều vật tư liên tỉnh",
-    icon: ArrowRightLeft,
-    roles: ["manager"],
-  },
-  {
-    key: "vehicle_transfers",
-    label: "Điều xe liên tỉnh",
-    icon: ArrowRightLeft,
-    roles: ["manager"],
+    roles: ["manager", "warehouse_manager", "coordinator"],
   },
   {
     key: "vehicle_requests",
     label: "Yêu cầu điều xe",
     icon: ClipboardList,
-    roles: ["manager", "coordinator"],
+    roles: ["manager", "warehouse_manager", "coordinator"],
   },
   {
     key: "my_supplies",
@@ -235,8 +223,15 @@ export default function ResourcesPage() {
   const loadSharedData = useCallback(() => {
     if (sharedLoaded) return;
     setSharedLoaded(true);
+    // Coordinators only see their own province's warehouses + vehicles
+    const vehicleParams = role === "coordinator" && user?.province_id
+      ? { province_id: user.province_id }
+      : {};
+    const warehouseParams = role === "coordinator" && user?.province_id
+      ? { province_id: user.province_id }
+      : {};
     resourceAPI
-      .getWarehouses()
+      .getWarehouses(warehouseParams)
       .then((r) => setWarehouses(r.data || []))
       .catch(() => {});
     resourceAPI
@@ -244,7 +239,7 @@ export default function ResourcesPage() {
       .then((r) => setReliefItems(r.data || []))
       .catch(() => {});
     resourceAPI
-      .getVehicles()
+      .getVehicles(vehicleParams)
       .then((r) => setVehicles(r.data || []))
       .catch(() => {});
     teamAPI
@@ -255,7 +250,7 @@ export default function ResourcesPage() {
       .getProvinces()
       .then((r) => setProvinces(r.data || []))
       .catch(() => {});
-  }, [sharedLoaded]);
+  }, [sharedLoaded, role, user?.province_id]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -445,6 +440,7 @@ export default function ResourcesPage() {
           warehouses={warehouses}
           reliefItems={reliefItems}
           teams={teams}
+          user={user}
           onClose={closeModal}
           refresh={refresh}
         />
@@ -453,6 +449,7 @@ export default function ResourcesPage() {
         <ModalDispatchVehicle
           vehicles={vehicles}
           teams={teams}
+          user={user}
           role={role}
           onClose={closeModal}
           refresh={refresh}
@@ -848,8 +845,8 @@ function DistributionCard({ d, role, setModal, refresh }) {
             </p>
           )}
           {d.notes && <p className="text-gray-500">Ghi chú: {d.notes}</p>}
-          {/* Coordinator xác nhận nhận lại hàng */}
-          {["manager", "coordinator"].includes(role) &&
+          {/* Kho xác nhận nhận lại hàng */}
+          {["manager", "warehouse_manager"].includes(role) &&
             d.status === "return_requested" && (
               <div className="pt-2">
                 <Btn
@@ -961,7 +958,7 @@ function VehicleDispatchCard({ d, role, setModal, refresh }) {
           {d.mission_note && (
             <p className="text-gray-500">Ghi chú: {d.mission_note}</p>
           )}
-          {["manager", "coordinator"].includes(role) &&
+          {["manager", "warehouse_manager"].includes(role) &&
             d.status === "returned" && (
               <div className="pt-2">
                 <Btn
@@ -1296,6 +1293,26 @@ function TabMySupplies({ data, user, setModal, refresh }) {
                 <p className="text-xs text-gray-500">
                   Từ kho: {d.warehouse_name} · {formatDate(d.created_at)}
                 </p>
+                {d.voucher_code && (
+                  <div className="mt-2 inline-flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+                    <span className="text-xs text-gray-500">Mã phiếu:</span>
+                    <span className="font-mono font-bold text-blue-700 text-base tracking-widest">
+                      {d.voucher_code}
+                    </span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(d.voucher_code); }}
+                      title="Sao chép"
+                      className="text-blue-400 hover:text-blue-600 transition"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                {d.status === "issued" && !d.warehouse_confirmed && (
+                  <p className="text-xs text-yellow-600 mt-1">⏳ Trình mã phiếu trên cho kho xác nhận bàn giao</p>
+                )}
                 {d.return_quantity && (
                   <p className="text-xs text-orange-500 mt-1">
                     Đã gửi phiếu trả: {d.return_quantity} {d.item_unit}
@@ -1304,7 +1321,7 @@ function TabMySupplies({ data, user, setModal, refresh }) {
               </div>
               {isLeader && (
                 <div className="flex flex-col gap-1.5">
-                  {d.status === "issued" && (
+                  {d.status === "issued" && d.warehouse_confirmed && (
                     <Btn
                       onClick={() => handleConfirm(d.id)}
                       className="bg-green-600 text-white hover:bg-green-700 text-xs"
@@ -1337,6 +1354,8 @@ function TabMySupplies({ data, user, setModal, refresh }) {
 // ─── Tab: Xe của đội (rescue_team) ───────────────────────────────────────────
 function TabMyVehicles({ data, user, refresh }) {
   const isLeader = user?.is_team_leader;
+  const [incidentModal, setIncidentModal] = useState({ open: false, id: null, type: 'damaged', note: '' });
+
   const handleConfirm = async (id) => {
     if (!window.confirm("Xác nhận đã nhận xe?")) return;
     try {
@@ -1357,8 +1376,70 @@ function TabMyVehicles({ data, user, refresh }) {
       alert(e?.response?.data?.error || "Có lỗi.");
     }
   };
+  const handleSubmitIncident = async () => {
+    if (!incidentModal.note.trim()) { alert("Vui lòng mô tả sự cố."); return; }
+    try {
+      await resourceAPI.reportVehicleIncident(incidentModal.id, {
+        incident_type: incidentModal.type,
+        incident_note: incidentModal.note,
+      });
+      setIncidentModal({ open: false, id: null, type: 'damaged', note: '' });
+      alert(incidentModal.type === 'lost' ? "Đã báo cáo mất xe." : "Đã báo cáo xe hỏng. Xe chuyển sang bảo trì.");
+      refresh();
+    } catch (e) {
+      alert(e?.response?.data?.error || "Có lỗi.");
+    }
+  };
+
   return (
     <div className="space-y-3">
+      {/* Modal báo cáo sự cố xe */}
+      {incidentModal.open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4">
+            <h3 className="font-bold text-gray-900 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" /> Báo cáo sự cố xe
+            </h3>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Loại sự cố *</label>
+              <div className="flex gap-3">
+                <label className={`flex-1 flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer text-sm ${incidentModal.type === 'damaged' ? 'border-orange-400 bg-orange-50' : 'hover:bg-gray-50'}`}>
+                  <input type="radio" name="inc_type" value="damaged" checked={incidentModal.type === 'damaged'}
+                    onChange={() => setIncidentModal(m => ({ ...m, type: 'damaged' }))} />
+                  🔧 Xe hỏng
+                </label>
+                <label className={`flex-1 flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer text-sm ${incidentModal.type === 'lost' ? 'border-red-400 bg-red-50' : 'hover:bg-gray-50'}`}>
+                  <input type="radio" name="inc_type" value="lost" checked={incidentModal.type === 'lost'}
+                    onChange={() => setIncidentModal(m => ({ ...m, type: 'lost' }))} />
+                  ❌ Xe mất
+                </label>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Mô tả chi tiết *</label>
+              <textarea
+                rows={3}
+                value={incidentModal.note}
+                onChange={e => setIncidentModal(m => ({ ...m, note: e.target.value }))}
+                placeholder={incidentModal.type === 'lost' ? "Mô tả hoàn cảnh mất xe..." : "Mô tả tình trạng hỏng hóc..."}
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
+              />
+            </div>
+            {incidentModal.type === 'lost' && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+                ⚠️ Báo mất xe sẽ đánh dấu xe là "Đã mất" và thông báo cho quản lý ngay lập tức.
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Btn onClick={() => setIncidentModal({ open: false, id: null, type: 'damaged', note: '' })}
+                className="bg-gray-100 text-gray-700 hover:bg-gray-200">Hủy</Btn>
+              <Btn onClick={handleSubmitIncident}
+                className="bg-red-600 text-white hover:bg-red-700">Gửi báo cáo</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
       {data.length === 0 ? (
         <EmptyState text="Đội chưa được điều xe." />
       ) : (
@@ -1382,25 +1463,39 @@ function TabMyVehicles({ data, user, refresh }) {
                 {d.mission_note && (
                   <p className="text-xs text-gray-400 mt-1">{d.mission_note}</p>
                 )}
+                {d.incident_type && (
+                  <p className={`text-xs mt-1 font-medium ${d.incident_type === 'lost' ? 'text-red-600' : 'text-orange-600'}`}>
+                    {d.incident_type === 'lost' ? '❌ Đã báo mất xe' : '🔧 Đã báo hỏng xe'}
+                    {d.incident_note && ` — ${d.incident_note}`}
+                  </p>
+                )}
               </div>
               {isLeader && (
-                <div className="flex flex-col gap-1.5">
-                  {d.status === "dispatched" && (
-                    <Btn
-                      onClick={() => handleConfirm(d.id)}
-                      className="bg-green-600 text-white hover:bg-green-700 text-xs"
-                    >
-                      <CheckCircle className="w-3.5 h-3.5 inline mr-1" /> Xác
-                      nhận nhận xe
+                <div className="flex flex-col gap-1.5 items-end">
+                  {d.status === "dispatched" && !d.warehouse_confirmed && (
+                    <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                      ⏳ Chờ kho xác nhận bàn giao xe
+                    </span>
+                  )}
+                  {d.status === "dispatched" && d.warehouse_confirmed && (
+                    <Btn onClick={() => handleConfirm(d.id)}
+                      className="bg-green-600 text-white hover:bg-green-700 text-xs">
+                      <CheckCircle className="w-3.5 h-3.5 inline mr-1" /> Xác nhận nhận xe
                     </Btn>
                   )}
                   {d.status === "confirmed" && (
-                    <Btn
-                      onClick={() => handleReturn(d.id)}
-                      className="bg-gray-200 text-gray-700 hover:bg-gray-300 text-xs"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 inline mr-1" /> Trả xe
-                    </Btn>
+                    <>
+                      <Btn onClick={() => handleReturn(d.id)}
+                        className="bg-gray-200 text-gray-700 hover:bg-gray-300 text-xs">
+                        <RotateCcw className="w-3.5 h-3.5 inline mr-1" /> Trả xe
+                      </Btn>
+                      <Btn
+                        onClick={() => setIncidentModal({ open: true, id: d.id, type: 'damaged', note: '' })}
+                        className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 text-xs"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 inline mr-1" /> Báo sự cố
+                      </Btn>
+                    </>
                   )}
                 </div>
               )}
@@ -1418,20 +1513,59 @@ function ModalDispatchSupply({
   warehouses,
   reliefItems,
   teams,
+  user,
   onClose,
   refresh,
 }) {
+  const isCoordinator = user?.role === "coordinator";
+  const provinceId = user?.province_id;
+
+  // Filter to coordinator's province only
+  const myTeams = isCoordinator
+    ? teams.filter((t) => t.province_id === provinceId)
+    : teams;
+
+  // Coordinator: only their warehouse (coordinator_id matches) or same province
+  const myWarehouses = isCoordinator
+    ? warehouses.filter(
+        (w) => w.coordinator_id === user?.id || w.province_id === provinceId,
+      )
+    : warehouses;
+
+  // Auto-select warehouse if coordinator has exactly one
+  const autoWarehouseId =
+    isCoordinator && myWarehouses.length === 1
+      ? String(myWarehouses[0].id)
+      : "";
+
   const [form, setForm] = useState({
     team_id: "",
-    warehouse_id: "",
+    warehouse_id: autoWarehouseId,
     item_id: "",
     quantity: "",
     notes: "",
   });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Live stock for selected warehouse
+  const [inventory, setInventory] = useState([]); // [{ item_id, quantity_available, ... }]
+  useEffect(() => {
+    if (!form.warehouse_id) { setInventory([]); return; }
+    resourceAPI
+      .getInventory({ warehouse_id: form.warehouse_id })
+      .then((r) => setInventory(r.data || []))
+      .catch(() => setInventory([]));
+  }, [form.warehouse_id]);
+
+  const stockOf = (itemId) =>
+    inventory.find((inv) => inv.item_id === Number(itemId))?.quantity_available ?? null;
+
   const submit = async () => {
     if (!form.team_id || !form.warehouse_id || !form.item_id || !form.quantity)
       return alert("Vui lòng điền đủ thông tin.");
+    const stock = stockOf(form.item_id);
+    if (stock !== null && Number(form.quantity) > stock)
+      return alert(`Số lượng vượt tồn kho (còn ${stock}).`);
     try {
       await resourceAPI.createDistribution(form);
       alert("Cấp phát thành công. Tồn kho đã trừ.");
@@ -1441,6 +1575,9 @@ function ModalDispatchSupply({
       alert(e?.response?.data?.error || "Có lỗi xảy ra.");
     }
   };
+
+  const selectedStock = stockOf(form.item_id);
+
   return (
     <Modal title="Cấp phát vật tư" onClose={onClose}>
       <Field label="Đội nhận *">
@@ -1449,47 +1586,68 @@ function ModalDispatchSupply({
           onChange={(e) => set("team_id", e.target.value)}
         >
           <option value="">— Chọn đội —</option>
-          {teams.map((t) => (
+          {myTeams.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
             </option>
           ))}
         </Select>
       </Field>
-      <Field label="Kho xuất *">
-        <Select
-          value={form.warehouse_id}
-          onChange={(e) => set("warehouse_id", e.target.value)}
-        >
-          <option value="">— Chọn kho —</option>
-          {warehouses.map((w) => (
-            <option key={w.id} value={w.id}>
-              {w.name}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      {myWarehouses.length !== 1 && (
+        <Field label="Kho xuất *">
+          <Select
+            value={form.warehouse_id}
+            onChange={(e) => set("warehouse_id", e.target.value)}
+          >
+            <option value="">— Chọn kho —</option>
+            {myWarehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
+      {myWarehouses.length === 1 && (
+        <div className="text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+          🏭 Kho xuất: <span className="font-medium text-gray-800">{myWarehouses[0].name}</span>
+        </div>
+      )}
       <Field label="Vật phẩm *">
         <Select
           value={form.item_id}
           onChange={(e) => set("item_id", e.target.value)}
         >
           <option value="">— Chọn vật phẩm —</option>
-          {reliefItems.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.name} ({i.unit})
-            </option>
-          ))}
+          {reliefItems.map((i) => {
+            const s = stockOf(i.id);
+            return (
+              <option key={i.id} value={i.id} disabled={s !== null && s <= 0}>
+                {i.name} ({i.unit}){s !== null ? ` — tồn: ${s}` : ""}
+              </option>
+            );
+          })}
         </Select>
+        {form.item_id && selectedStock !== null && (
+          <p className={`text-xs mt-1 ${selectedStock <= 0 ? "text-red-500" : "text-gray-500"}`}>
+            Tồn kho hiện tại: <span className="font-semibold">{selectedStock}</span>{" "}
+            {reliefItems.find((i) => String(i.id) === form.item_id)?.unit}
+            {selectedStock <= 0 && " — Hết hàng"}
+          </p>
+        )}
       </Field>
       <Field label="Số lượng *">
         <Input
           type="number"
           min="0.1"
           step="0.1"
+          max={selectedStock ?? undefined}
           value={form.quantity}
           onChange={(e) => set("quantity", e.target.value)}
         />
+        {selectedStock !== null && form.quantity && Number(form.quantity) > selectedStock && (
+          <p className="text-xs text-red-500 mt-1">⚠️ Vượt quá tồn kho ({selectedStock})</p>
+        )}
       </Field>
       <Field label="Ghi chú">
         <Input
@@ -1516,7 +1674,13 @@ function ModalDispatchSupply({
   );
 }
 
-function ModalDispatchVehicle({ vehicles, teams, onClose, refresh }) {
+function ModalDispatchVehicle({ vehicles, teams, user, onClose, refresh }) {
+  const isCoordinator = user?.role === "coordinator";
+  const provinceId = user?.province_id;
+  const myTeams = isCoordinator
+    ? teams.filter((t) => t.province_id === provinceId)
+    : teams;
+
   const [form, setForm] = useState({
     vehicle_id: "",
     team_id: "",
@@ -1557,7 +1721,7 @@ function ModalDispatchVehicle({ vehicles, teams, onClose, refresh }) {
           onChange={(e) => set("team_id", e.target.value)}
         >
           <option value="">— Chọn đội —</option>
-          {teams.map((t) => (
+          {myTeams.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
             </option>

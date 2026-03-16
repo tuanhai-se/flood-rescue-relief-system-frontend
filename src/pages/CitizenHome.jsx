@@ -36,17 +36,17 @@ import {
 
 // Status-based colors for map markers
 const STATUS_MARKER_COLORS = {
-  pending: "#eab308", // yellow
-  verified: "#3b82f6", // blue
-  assigned: "#8b5cf6", // purple
-  in_progress: "#f97316", // orange
-  completed: "#22c55e", // green
-  cancelled: "#6b7280", // gray
-  rejected: "#6b7280", // gray
+  pending:     '#eab308', // yellow
+  verified:    '#3b82f6', // blue
+  assigned:    '#8b5cf6', // purple
+  in_progress: '#f97316', // orange
+  completed:   '#22c55e', // green
+  cancelled:   '#6b7280', // gray
+  rejected:    '#6b7280', // gray
 };
 
 function getStatusMarkerColor(status) {
-  return STATUS_MARKER_COLORS[status] || "#3b82f6";
+  return STATUS_MARKER_COLORS[status] || '#3b82f6';
 }
 
 // Custom marker icon factory
@@ -62,15 +62,15 @@ function createMarkerIcon(color, size = 28) {
 
 // Warehouse marker — hình ghim bản đồ (pin), khác hoàn toàn với chấm tròn của request
 function createWarehouseIcon(type) {
-  const isCentral = type === "central";
+  const isCentral = type === 'central';
   // Kho trung tâm: đỏ tươi (nổi nhất trên nền map) | Kho vệ tinh: vàng cam
-  const fill = isCentral ? "#dc2626" : "#f59e0b";
-  const stroke = isCentral ? "#991b1b" : "#b45309";
-  const w = isCentral ? 32 : 24;
-  const h = isCentral ? 44 : 34;
-  const r = w / 2;
-  const label = isCentral ? "🏛" : "📦";
-  const fsize = isCentral ? 14 : 11;
+  const fill    = isCentral ? '#dc2626' : '#f59e0b';
+  const stroke  = isCentral ? '#991b1b' : '#b45309';
+  const w       = isCentral ? 32 : 24;
+  const h       = isCentral ? 44 : 34;
+  const r       = w / 2;
+  const label   = isCentral ? '🏛' : '📦';
+  const fsize   = isCentral ? 14 : 11;
 
   // SVG: hình tròn phía trên + đuôi nhọn phía dưới (giống Google Maps pin)
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
@@ -80,10 +80,10 @@ function createWarehouseIcon(type) {
   </svg>`;
 
   return L.divIcon({
-    className: "",
+    className: '',
     html: `<div style="filter:drop-shadow(0 3px 6px rgba(0,0,0,0.4))">${svg}</div>`,
-    iconSize: [w, h],
-    iconAnchor: [r, h], // neo tại đầu nhọn
+    iconSize:    [w, h],
+    iconAnchor:  [r, h],        // neo tại đầu nhọn
     popupAnchor: [0, -h + 4],
   });
 }
@@ -218,22 +218,18 @@ export default function CitizenHome() {
 
   function matchProvinceName(nominatimName) {
     if (!nominatimName || !provinces.length) return nominatimName;
-    const norm = (s) =>
-      s
-        .toLowerCase()
-        .replace(/thành phố|tỉnh|tp\.|tp /gi, "")
-        .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, "a")
-        .replace(/[èéẹẻẽêềếệểễ]/g, "e")
-        .replace(/[ìíịỉĩ]/g, "i")
-        .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, "o")
-        .replace(/[ùúụủũưừứựửữ]/g, "u")
-        .replace(/[ỳýỵỷỹ]/g, "y")
-        .replace(/đ/g, "d")
-        .trim();
+    const norm = (s) => s.toLowerCase()
+      .replace(/thành phố|tỉnh|tp\.|tp /gi, '')
+      .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, 'a')
+      .replace(/[èéẹẻẽêềếệểễ]/g, 'e')
+      .replace(/[ìíịỉĩ]/g, 'i')
+      .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, 'o')
+      .replace(/[ùúụủũưừứựửữ]/g, 'u')
+      .replace(/[ỳýỵỷỹ]/g, 'y')
+      .replace(/đ/g, 'd')
+      .trim();
     const key = norm(nominatimName);
-    const found = provinces.find(
-      (p) => norm(p.name).includes(key) || key.includes(norm(p.name)),
-    );
+    const found = provinces.find(p => norm(p.name).includes(key) || key.includes(norm(p.name)));
     return found ? found.name : nominatimName;
   }
 
@@ -390,12 +386,9 @@ export default function CitizenHome() {
 
   async function handleSidebarSearch() {
     const val = trackingCode.trim();
-    if (!val) {
-      setSidebarPhoneResults(null);
-      return;
-    }
+    if (!val) { setSidebarPhoneResults(null); return; }
     // Nếu bắt đầu bằng RQ- → navigate to track page
-    if (val.toUpperCase().startsWith("RQ-")) {
+    if (val.toUpperCase().startsWith('RQ-')) {
       window.location.href = `/track/${val}`;
       return;
     }
@@ -454,22 +447,11 @@ export default function CitizenHome() {
         {/* Center CTA */}
         <div className="absolute left-1/2 -translate-x-1/2">
           <button
-            onClick={() => {
-              setShowForm(!showForm);
-              setShowTrack(false);
-            }}
+            onClick={() => { setShowForm(!showForm); setShowTrack(false); }}
             className={`flex items-center gap-2 px-5 py-2 rounded-xl font-bold text-sm text-white shadow-lg transition-all duration-200 hover:scale-105
-              ${showForm ? "bg-gray-600" : "bg-gradient-to-r from-red-600 to-red-500 emergency-pulse"}`}
+              ${showForm ? 'bg-gray-600' : 'bg-gradient-to-r from-red-600 to-red-500 emergency-pulse'}`}
           >
-            {showForm ? (
-              <>
-                <X size={16} /> Đóng
-              </>
-            ) : (
-              <>
-                <Send size={16} /> GỬI YÊU CẦU CỨU HỘ
-              </>
-            )}
+            {showForm ? <><X size={16} /> Đóng</> : <><Send size={16} /> GỬI YÊU CẦU CỨU HỘ</>}
           </button>
         </div>
 
@@ -581,11 +563,8 @@ export default function CitizenHome() {
                 type="text"
                 placeholder="Nhập mã (RQ-...) hoặc số điện thoại"
                 value={trackingCode}
-                onChange={(e) => {
-                  setTrackingCode(e.target.value);
-                  if (!e.target.value) setSidebarPhoneResults(null);
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleSidebarSearch()}
+                onChange={(e) => { setTrackingCode(e.target.value); if (!e.target.value) setSidebarPhoneResults(null); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleSidebarSearch()}
                 className="flex-1 text-sm input-field py-1.5"
               />
               <button
@@ -593,34 +572,23 @@ export default function CitizenHome() {
                 disabled={sidebarSearching}
                 className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 flex items-center"
               >
-                {sidebarSearching ? (
-                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Search size={14} />
-                )}
+                {sidebarSearching
+                  ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Search size={14} />}
               </button>
             </div>
             {/* Phone search results */}
             {sidebarPhoneResults !== null && (
               <div className="mt-2">
                 {sidebarPhoneResults.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-2">
-                    Không tìm thấy yêu cầu nào
-                  </p>
+                  <p className="text-xs text-gray-400 text-center py-2">Không tìm thấy yêu cầu nào</p>
                 ) : (
                   <div className="space-y-1 max-h-40 overflow-y-auto">
-                    {sidebarPhoneResults.map((r) => (
-                      <Link
-                        key={r.tracking_code}
-                        to={`/track/${r.tracking_code}`}
-                        className="flex items-center justify-between p-2 rounded-lg border border-gray-100 hover:bg-blue-50 text-xs"
-                      >
-                        <span className="font-mono text-blue-700">
-                          {r.tracking_code}
-                        </span>
-                        <span
-                          className={`px-1.5 py-0.5 rounded-full font-medium ${getStatusBadgeClass(r.status)}`}
-                        >
+                    {sidebarPhoneResults.map(r => (
+                      <Link key={r.tracking_code} to={`/track/${r.tracking_code}`}
+                        className="flex items-center justify-between p-2 rounded-lg border border-gray-100 hover:bg-blue-50 text-xs">
+                        <span className="font-mono text-blue-700">{r.tracking_code}</span>
+                        <span className={`px-1.5 py-0.5 rounded-full font-medium ${getStatusBadgeClass(r.status)}`}>
                           {STATUS_LABELS[r.status]}
                         </span>
                       </Link>
@@ -811,74 +779,48 @@ export default function CitizenHome() {
               ))}
 
             {/* Warehouse markers */}
-            {showWarehouses &&
-              warehouses.map((w) => (
-                <Marker
-                  key={`wh-${w.id}`}
-                  position={[w.latitude, w.longitude]}
-                  icon={createWarehouseIcon(w.warehouse_type)}
-                >
-                  <Popup maxWidth={260}>
-                    <div className="font-sans min-w-[220px]">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${w.warehouse_type === "central" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
-                        >
-                          {w.warehouse_type === "central"
-                            ? "🏛 Kho trung tâm"
-                            : "📦 Kho vệ tinh"}
-                        </span>
-                      </div>
-                      <p className="font-bold text-sm text-gray-800">
-                        {w.name}
-                      </p>
-                      {w.address && (
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          📍 {w.address}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {w.province_name}
-                      </p>
-                      {w.capacity_tons > 0 && (
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          📏 Sức chứa: {w.capacity_tons} tấn
-                        </p>
-                      )}
-                      <button
-                        onClick={() => {
-                          const dest = `${w.latitude},${w.longitude}`;
-                          if (navigator.geolocation) {
-                            navigator.geolocation.getCurrentPosition(
-                              (pos) => {
-                                const origin = `${pos.coords.latitude},${pos.coords.longitude}`;
-                                window.open(
-                                  `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`,
-                                  "_blank",
-                                );
-                              },
-                              () => {
-                                window.open(
-                                  `https://www.google.com/maps/dir/?api=1&destination=${dest}`,
-                                  "_blank",
-                                );
-                              },
-                            );
-                          } else {
-                            window.open(
-                              `https://www.google.com/maps/dir/?api=1&destination=${dest}`,
-                              "_blank",
-                            );
-                          }
-                        }}
-                        className="mt-2 w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-1.5 rounded-lg transition"
-                      >
-                        🗺️ Chỉ đường đến đây
-                      </button>
+            {showWarehouses && warehouses.map(w => (
+              <Marker
+                key={`wh-${w.id}`}
+                position={[w.latitude, w.longitude]}
+                icon={createWarehouseIcon(w.warehouse_type)}
+              >
+                <Popup maxWidth={260}>
+                  <div className="font-sans min-w-[220px]">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${w.warehouse_type === 'central' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {w.warehouse_type === 'central' ? '🏛 Kho trung tâm' : '📦 Kho vệ tinh'}
+                      </span>
                     </div>
-                  </Popup>
-                </Marker>
-              ))}
+                    <p className="font-bold text-sm text-gray-800">{w.name}</p>
+                    {w.address && <p className="text-xs text-gray-500 mt-0.5">📍 {w.address}</p>}
+                    <p className="text-xs text-gray-400 mt-0.5">{w.province_name}</p>
+                    {w.capacity_tons > 0 && <p className="text-xs text-gray-500 mt-0.5">📏 Sức chứa: {w.capacity_tons} tấn</p>}
+                    <button
+                      onClick={() => {
+                        const dest = `${w.latitude},${w.longitude}`;
+                        if (navigator.geolocation) {
+                          navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                              const origin = `${pos.coords.latitude},${pos.coords.longitude}`;
+                              window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}`, '_blank');
+                            },
+                            () => {
+                              window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}`, '_blank');
+                            }
+                          );
+                        } else {
+                          window.open(`https://www.google.com/maps/dir/?api=1&destination=${dest}`, '_blank');
+                        }
+                      }}
+                      className="mt-2 w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-1.5 rounded-lg transition"
+                    >
+                      🗺️ Chỉ đường đến đây
+                    </button>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
 
             {/* Location picker marker */}
             {pickerLocation && (
@@ -897,77 +839,27 @@ export default function CitizenHome() {
           {/* Warehouse toggle + legend */}
           <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2">
             <button
-              onClick={() => setShowWarehouses((v) => !v)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium shadow-lg border transition ${showWarehouses ? "bg-white text-gray-800 border-gray-200" : "bg-gray-700 text-white border-gray-600"}`}
+              onClick={() => setShowWarehouses(v => !v)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium shadow-lg border transition ${showWarehouses ? 'bg-white text-gray-800 border-gray-200' : 'bg-gray-700 text-white border-gray-600'}`}
             >
-              <span>🏭</span> {showWarehouses ? "Ẩn kho" : "Hiện kho"}
+              <span>🏭</span> {showWarehouses ? 'Ẩn kho' : 'Hiện kho'}
             </button>
             {showWarehouses && warehouses.length > 0 && (
               <div className="bg-white/95 rounded-xl shadow-lg border border-gray-100 px-3 py-2 text-xs space-y-1.5">
                 <p className="font-semibold text-gray-600 mb-1">Kho cứu trợ</p>
                 <div className="flex items-center gap-2">
-                  <svg
-                    width="14"
-                    height="20"
-                    viewBox="0 0 32 44"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <circle
-                      cx="16"
-                      cy="16"
-                      r="14.5"
-                      fill="#dc2626"
-                      stroke="#991b1b"
-                      strokeWidth="2.5"
-                    />
-                    <polygon
-                      points="10,28 16,43 22,28"
-                      fill="#dc2626"
-                      stroke="#991b1b"
-                      strokeWidth="1.5"
-                      strokeLinejoin="round"
-                    />
+                  <svg width="14" height="20" viewBox="0 0 32 44" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="16" cy="16" r="14.5" fill="#dc2626" stroke="#991b1b" strokeWidth="2.5"/>
+                    <polygon points="10,28 16,43 22,28" fill="#dc2626" stroke="#991b1b" strokeWidth="1.5" strokeLinejoin="round"/>
                   </svg>
-                  <span className="text-gray-700">
-                    Kho trung tâm (
-                    {
-                      warehouses.filter((w) => w.warehouse_type === "central")
-                        .length
-                    }
-                    )
-                  </span>
+                  <span className="text-gray-700">Kho trung tâm ({warehouses.filter(w=>w.warehouse_type==='central').length})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <svg
-                    width="11"
-                    height="16"
-                    viewBox="0 0 24 34"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10.5"
-                      fill="#f59e0b"
-                      stroke="#b45309"
-                      strokeWidth="2"
-                    />
-                    <polygon
-                      points="7,21 12,33 17,21"
-                      fill="#f59e0b"
-                      stroke="#b45309"
-                      strokeWidth="1.5"
-                      strokeLinejoin="round"
-                    />
+                  <svg width="11" height="16" viewBox="0 0 24 34" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10.5" fill="#f59e0b" stroke="#b45309" strokeWidth="2"/>
+                    <polygon points="7,21 12,33 17,21" fill="#f59e0b" stroke="#b45309" strokeWidth="1.5" strokeLinejoin="round"/>
                   </svg>
-                  <span className="text-gray-700">
-                    Kho vệ tinh (
-                    {
-                      warehouses.filter((w) => w.warehouse_type !== "central")
-                        .length
-                    }
-                    )
-                  </span>
+                  <span className="text-gray-700">Kho vệ tinh ({warehouses.filter(w=>w.warehouse_type!=='central').length})</span>
                 </div>
               </div>
             )}
