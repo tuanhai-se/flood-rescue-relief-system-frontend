@@ -16,7 +16,9 @@ import UsersPage from './pages/UsersPage';
 import ConfigPage from './pages/ConfigPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ReportPage from './pages/ReportPage';
-// AuditLogsPage đã bỏ - không cần thiết theo đề bài
+import TasksPage from './pages/TasksPage';
+import AuditLogsPage from './pages/AuditLogsPage';
+import InventoryCheckPage from './pages/InventoryCheckPage';
 
 // Layout
 import DashboardLayout from './components/common/DashboardLayout';
@@ -26,6 +28,17 @@ function ProtectedRoute({ children, roles }) {
   if (!token) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(user?.role)) return <Navigate to="/dashboard" replace />;
   return children;
+}
+
+// Redirect theo role về trang mặc định phù hợp
+function RescueTeamDefaultRoute() {
+  const { user } = useAuthStore();
+  if (user?.role === 'admin') return <Navigate to="/dashboard/users" replace />;
+  if (user?.role === 'warehouse_manager') return <Navigate to="/dashboard/inventory" replace />;
+  if (user?.role === 'rescue_team' && !user?.is_team_leader) {
+    return <Navigate to="/dashboard/missions" replace />;
+  }
+  return <Dashboard />;
 }
 
 export default function App() {
@@ -48,29 +61,34 @@ export default function App() {
         <Route path="/dashboard" element={
           <ProtectedRoute><DashboardLayout /></ProtectedRoute>
         }>
-          <Route index element={<Dashboard />} />
+          <Route index element={<RescueTeamDefaultRoute />} />
           <Route path="requests" element={
-            <ProtectedRoute roles={['manager', 'coordinator']}>
+            <ProtectedRoute roles={['manager','coordinator']}>
               <RequestsList />
             </ProtectedRoute>
           } />
           <Route path="missions" element={
-            <ProtectedRoute roles={['manager', 'coordinator', 'rescue_team']}>
+            <ProtectedRoute roles={['manager','coordinator','rescue_team']}>
               <MissionsList />
             </ProtectedRoute>
           } />
           <Route path="teams" element={
-            <ProtectedRoute roles={['manager', 'coordinator']}>
+            <ProtectedRoute roles={['coordinator','rescue_team']}>
               <TeamsPage />
             </ProtectedRoute>
           } />
+          <Route path="tasks" element={
+            <ProtectedRoute roles={['coordinator','manager','rescue_team']}>
+              <TasksPage />
+            </ProtectedRoute>
+          } />
           <Route path="resources" element={
-            <ProtectedRoute roles={['manager', 'coordinator']}>
+            <ProtectedRoute roles={['manager','warehouse_manager','coordinator','rescue_team']}>
               <ResourcesPage />
             </ProtectedRoute>
           } />
           <Route path="users" element={
-            <ProtectedRoute roles={['admin', 'manager']}>
+            <ProtectedRoute roles={['admin']}>
               <UsersPage />
             </ProtectedRoute>
           } />
@@ -80,11 +98,21 @@ export default function App() {
             </ProtectedRoute>
           } />
           <Route path="reports" element={
-            <ProtectedRoute roles={['admin', 'manager']}>
+            <ProtectedRoute roles={['admin','manager','warehouse_manager']}>
               <ReportPage />
             </ProtectedRoute>
           } />
+          <Route path="inventory" element={
+            <ProtectedRoute roles={['manager','warehouse_manager']}>
+              <InventoryCheckPage />
+            </ProtectedRoute>
+          } />
           <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="audit-logs" element={
+            <ProtectedRoute roles={['admin']}>
+              <AuditLogsPage />
+            </ProtectedRoute>
+          } />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
