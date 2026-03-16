@@ -40,6 +40,8 @@ export const requestAPI = {
   trackUpdate: (code, data) => api.put(`/requests/track/${code}/update`, data),
   trackNotifications: (code) => api.get(`/requests/track/${code}/notifications`),
   confirmRescue: (code) => api.put(`/requests/track/${code}/confirm`),
+  rescuedByOther: (code) => api.put(`/requests/track/${code}/rescued-by-other`),
+  close: (id) => api.put(`/requests/${id}/close`),
   getMapData: (params) => api.get('/requests/map', { params }),
   getAll: (params) => api.get('/requests', { params }),
   getById: (id) => api.get(`/requests/${id}`),
@@ -79,17 +81,45 @@ export const resourceAPI = {
   getVehicles: (params) => api.get('/resources/vehicles', { params }),
   createVehicle: (data) => api.post('/resources/vehicles', data),
   updateVehicle: (id, data) => api.put(`/resources/vehicles/${id}`, data),
-  getWarehouses: () => api.get('/resources/warehouses'),
+  getWarehouses: (params) => api.get('/resources/warehouses', { params }),
+  getWarehousesMap: () => api.get('/resources/warehouses/map'),
   createWarehouse: (data) => api.post('/resources/warehouses', data),
+  updateWarehouse: (id, data) => api.put(`/resources/warehouses/${id}`, data),
+  deleteWarehouse: (id) => api.delete(`/resources/warehouses/${id}`),
   getInventory: (params) => api.get('/resources/inventory', { params }),
   updateInventory: (id, data) => api.put(`/resources/inventory/${id}`, data),
   getReliefItems: () => api.get('/resources/relief-items'),
+  // === Distributions (Cấp phát vật tư) ===
   getDistributions: (params) => api.get('/resources/distributions', { params }),
   createDistribution: (data) => api.post('/resources/distributions', data),
-  // === Vehicle Requests (Manager xin điều phối phương tiện) ===
+  confirmDistribution: (id) => api.put(`/resources/distributions/${id}/confirm`),
+  warehouseConfirmDistribution: (id) => api.put(`/resources/distributions/${id}/warehouse-confirm`),
+  requestReturnDistribution: (id, data) => api.put(`/resources/distributions/${id}/request-return`, data),
+  confirmReturnDistribution: (id, data) => api.put(`/resources/distributions/${id}/confirm-return`, data),
+  // === Vehicle Dispatches (Điều xe cho team) ===
+  getVehicleDispatches: (params) => api.get('/resources/vehicle-dispatches', { params }),
+  createVehicleDispatch: (data) => api.post('/resources/vehicle-dispatches', data),
+  warehouseConfirmVehicleDispatch: (id) => api.put(`/resources/vehicle-dispatches/${id}/warehouse-confirm`),
+  confirmVehicleDispatch: (id) => api.put(`/resources/vehicle-dispatches/${id}/confirm`),
+  returnVehicleDispatch: (id) => api.put(`/resources/vehicle-dispatches/${id}/return`),
+  confirmReturnVehicleDispatch: (id) => api.put(`/resources/vehicle-dispatches/${id}/confirm-return`),
+  reportVehicleIncident: (id, data) => api.put(`/resources/vehicle-dispatches/${id}/report-incident`, data),
+  confirmVehicleIncident: (id, data) => api.put(`/resources/vehicle-dispatches/${id}/confirm-incident`, data),
+  // === Supply Transfers (Điều vật tư liên tỉnh) ===
+  getSupplyTransfers: (params) => api.get('/resources/supply-transfers', { params }),
+  createSupplyTransfer: (data) => api.post('/resources/supply-transfers', data),
+  confirmSupplyTransfer: (id, data) => api.put(`/resources/supply-transfers/${id}/confirm`, data),
+  cancelSupplyTransfer: (id) => api.put(`/resources/supply-transfers/${id}/cancel`),
+  // === Vehicle Transfers (Điều xe liên tỉnh) ===
+  getVehicleTransfers: (params) => api.get('/resources/vehicle-transfers', { params }),
+  createVehicleTransfer: (data) => api.post('/resources/vehicle-transfers', data),
+  confirmVehicleTransfer: (id) => api.put(`/resources/vehicle-transfers/${id}/confirm`),
+  cancelVehicleTransfer: (id) => api.put(`/resources/vehicle-transfers/${id}/cancel`),
+  // === Vehicle Requests ===
   getVehicleRequests: (params) => api.get('/resources/vehicle-requests', { params }),
   createVehicleRequest: (data) => api.post('/resources/vehicle-requests', data),
   updateVehicleRequestStatus: (id, data) => api.put(`/resources/vehicle-requests/${id}/status`, data),
+  confirmVehicleRequest: (id, action) => api.put(`/resources/vehicle-requests/${id}/confirm`, { action }),
 };
 
 // === REGIONS ===
@@ -102,6 +132,7 @@ export const regionAPI = {
   getWeatherStatus: () => api.get('/regions/weather-status'),
   getWeatherCurrent: (provinceId) => api.get(`/regions/weather-current/${provinceId}`),
   getWeatherForecast: (provinceId) => api.get(`/regions/weather-forecast/${provinceId}`),
+  getWeatherByCoords: (lat, lon) => api.get('/regions/weather-by-coords', { params: { lat, lon } }),
   autoSyncWeatherAlerts: (data) => api.post('/regions/weather-alerts/auto-sync', data),
 };
 
@@ -152,12 +183,6 @@ export const configAPI = {
   set: (key, data) => api.put(`/config/${key}`, data),
 };
 
-// === AUDIT LOGS ===
-export const auditLogAPI = {
-  getAll: (params) => api.get('/audit-logs', { params }),
-  getActions: () => api.get('/audit-logs/actions'),
-};
-
 // === TASKS ===
 export const taskAPI = {
   getAll: (params) => api.get('/tasks', { params }),
@@ -174,6 +199,12 @@ export const taskAPI = {
   cancel: (id, data) => api.put(`/tasks/${id}/cancel`, data),
   setEstimatedCompletion: (id, data) => api.put(`/tasks/${id}/estimated-completion`, data),
   setScheduledDate: (id, data) => api.put(`/tasks/${id}/scheduled-date`, data),
+};
+
+// === AUDIT LOGS ===
+export const auditLogAPI = {
+  getAll: (params) => api.get('/audit-logs', { params }),
+  getActions: () => api.get('/audit-logs/actions'),
 };
 
 export default api;
