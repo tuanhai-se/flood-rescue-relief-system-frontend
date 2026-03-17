@@ -38,6 +38,7 @@ export const VEHICLE_TYPES = {
 export const ROLE_LABELS = {
   admin: 'Quản trị viên',
   manager: 'Quản lý',
+  warehouse_manager: 'Quản lý kho',
   coordinator: 'Điều phối viên',
   rescue_team: 'Đội cứu hộ'
 };
